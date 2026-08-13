@@ -34,7 +34,7 @@ def create_app():
     app = Flask(__name__)
 
     # ── Configuration ──
-    app.config['SECRET_KEY'] = 'smart-career-navigator-secret-key-2024'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max upload size: 16 MB
 
