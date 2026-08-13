@@ -1,0 +1,26 @@
+
+.env
+*.env
+
+venv/
+.venv/
+
+__pycache__/
+*.pyc
+
+*.db
+*.sqlite
+*.sqlite3
+
+*.log
+
+.vscode/
+
+# Generated reports and uploaded files
+CSP/static/reports/*
+CSP/static/uploads/*
+
+# Screenshots / temporary files
+CSP/Screenshot*.png
+CSP/0
+CSP/1.txt

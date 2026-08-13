@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Manage Students - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-700"><i class="bi bi-people me-2"></i>All Students ({{ students|length }})</h2>
+    <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        {% if students %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>User Details</th>
+                        <th>Academic Info</th>
+                        <th>Verification & Status</th>
+                        <th>Token Usage (Monthly)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="text-muted">{{ loop.index }}</td>
+                        <td>
+                            <div class="fw-600 fs-5">{{ s.username }}</div>
+                            <div class="small text-muted">{{ s.email }}</div>
+                            <small class="text-muted">Registered: {{ s.created_at }}</small>
+                        </td>
+                        <td>
+                            <div><strong>Name:</strong> {{ s.name or 'N/A' }}</div>
+                            <div><span class="badge bg-primary-subtle text-primary">{{ s.branch or 'N/A' }}</span></div>
+                            <small class="text-muted">Year: {{ s.year_of_study or 'N/A' }}</small>
+                        </td>
+                        <td>
+                            <!-- Verification status badge -->
+                            <div class="mb-1">
+                                {% if s.is_verified %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Verified</span>
+                                {% else %}
+                                <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Unverified</span>
+                                {% endif %}
+                            </div>
+                            <!-- Block status badge -->
+                            <div>
+                                {% if s.is_blocked %}
+                                <span class="badge bg-danger text-white"><i class="bi bi-lock me-1"></i>Blocked / Suspended</span>
+                                {% else %}
+                                <span class="badge bg-success text-white"><i class="bi bi-unlock me-1"></i>Active</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small mb-1">
+                                <strong>Used:</strong> {{ s.used_tokens }} / {{ s.token_limit }}
+                            </div>
+                            {% set pct = 0 %}
+                            {% if s.token_limit and s.token_limit > 0 %}
+                                {% set raw_pct = (s.used_tokens / s.token_limit) * 100 %}
+                                {% if raw_pct > 100 %}
+                                    {% set pct = 100 %}
+                                {% else %}
+                                    {% set pct = raw_pct %}
+                                {% endif %}
+                            {% endif %}
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar {% if pct >= 100 %}bg-danger{% elif pct >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" style="width: {{ pct }}%;" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column gap-2" style="max-width: 180px;">
+                                <!-- Toggle Block Form -->
+                                <form method="POST" action="{{ url_for('admin.toggle_block_student', user_id=s.id) }}">
+                                    {% if s.is_blocked %}
+                                    <button type="submit" class="btn btn-outline-success btn-sm w-100">
+                                        <i class="bi bi-unlock me-1"></i>Unblock User
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                        <i class="bi bi-lock me-1"></i>Block User
+                                    </button>
+                                    {% endif %}
+                                </form>
+
+                                <!-- Set Token Limit Form -->
+                                <form method="POST" action="{{ url_for('admin.set_token_limit', user_id=s.id) }}" class="input-group input-group-sm">
+                                    <input type="number" class="form-control" name="token_limit" value="{{ s.token_limit }}" placeholder="Limit" required min="0">
+                                    <button class="btn btn-primary" type="submit" title="Set Limit">Set</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-people display-1 text-muted"></i>
+            <p class="text-muted mt-3">No students registered yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

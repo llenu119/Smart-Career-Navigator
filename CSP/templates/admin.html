@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel - Smart Career Navigator{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex align-items-center">
+        <div class="page-icon bg-danger-subtle me-3">
+            <i class="bi bi-shield-lock text-danger"></i>
+        </div>
+        <div>
+            <h2 class="fw-700 mb-0">Admin Panel</h2>
+            <p class="text-muted mb-0">Manage career roles, courses, and students</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ STATS CARDS ═══════ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary-subtle"><i class="bi bi-people text-primary"></i></div>
+            <div class="stat-value">{{ stats.students }}</div>
+            <div class="stat-label">Students</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle"><i class="bi bi-briefcase text-success"></i></div>
+            <div class="stat-value">{{ stats.roles }}</div>
+            <div class="stat-label">Career Roles</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-warning-subtle"><i class="bi bi-book text-warning"></i></div>
+            <div class="stat-value">{{ stats.courses }}</div>
+            <div class="stat-label">Courses</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-info-subtle"><i class="bi bi-file-earmark text-info"></i></div>
+            <div class="stat-value">{{ stats.resumes }}</div>
+            <div class="stat-label">Resumes Analyzed</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ QUICK LINKS ═══════ -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.manage_roles') }}"
+            class="card border-0 shadow-sm text-decoration-none admin-link-card">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-briefcase display-4 text-success mb-2"></i>
+                <h5 class="fw-600">Manage Career Roles</h5>
+                <p class="text-muted small mb-0">Add, edit, or delete career roles and required skills</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.manage_courses') }}"
+            class="card border-0 shadow-sm text-decoration-none admin-link-card">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-book display-4 text-warning mb-2"></i>
+                <h5 class="fw-600">Manage Courses</h5>
+                <p class="text-muted small mb-0">Add or remove course recommendations</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.view_students') }}"
+            class="card border-0 shadow-sm text-decoration-none admin-link-card">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-people display-4 text-primary mb-2"></i>
+                <h5 class="fw-600">View Students</h5>
+                <p class="text-muted small mb-0">Browse all registered student profiles</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- ═══════ RECENT STUDENTS ═══════ -->
+<div class="glass-card">
+    <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <h5 class="fw-600 mb-0"><i class="bi bi-clock-history me-2"></i>Recent Registrations</h5>
+    </div>
+    <div class="card-body px-4">
+        {% if students %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Field of Study</th>
+                        <th>Year</th>
+                        <th>Registered</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="fw-500">{{ s.username }}</td>
+                        <td class="small">{{ s.email }}</td>
+                        <td><span class="badge bg-primary-subtle text-primary">{{ s.branch or 'N/A' }}</span></td>
+                        <td class="small">{{ s.year_of_study or 'N/A' }}</td>
+                        <td class="small text-muted">{{ s.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No students registered yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

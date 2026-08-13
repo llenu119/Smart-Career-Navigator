@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}My Profile - Smart Career Navigator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Page Header -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="page-icon bg-primary-subtle me-3">
+                <i class="bi bi-person-badge text-primary"></i>
+            </div>
+            <div>
+                <h2 class="fw-700 mb-0">My Profile</h2>
+                <p class="text-muted mb-0">Fill in your details to get personalized career recommendations</p>
+            </div>
+        </div>
+
+        <!-- Profile Form -->
+        <div class="glass-card">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('dashboard.profile') }}">
+
+                    <!-- Personal Information -->
+                    <h5 class="fw-600 mb-3"><i class="bi bi-person me-2"></i>Personal Information</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                value="{{ profile.name if profile else '' }}" placeholder="Your full name">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="branch" class="form-label">Field of Study / Department</label>
+                            <select class="form-select" id="branch" name="branch">
+                                <option value="">Select</option>
+                                <optgroup label="Engineering & Technology">
+                                    <option value="CSE" {{ 'selected' if profile and profile.branch=='CSE' }}>CSE</option>
+                                    <option value="IT" {{ 'selected' if profile and profile.branch=='IT' }}>IT</option>
+                                    <option value="ECE" {{ 'selected' if profile and profile.branch=='ECE' }}>ECE</option>
+                                    <option value="EEE" {{ 'selected' if profile and profile.branch=='EEE' }}>EEE</option>
+                                    <option value="MECH" {{ 'selected' if profile and profile.branch=='MECH' }}>MECH</option>
+                                    <option value="CIVIL" {{ 'selected' if profile and profile.branch=='CIVIL' }}>CIVIL</option>
+                                </optgroup>
+                                <optgroup label="Science & Mathematics">
+                                    <option value="B.Sc" {{ 'selected' if profile and profile.branch=='B.Sc' }}>B.Sc</option>
+                                    <option value="M.Sc" {{ 'selected' if profile and profile.branch=='M.Sc' }}>M.Sc</option>
+                                </optgroup>
+                                <optgroup label="Commerce & Management">
+                                    <option value="B.Com" {{ 'selected' if profile and profile.branch=='B.Com' }}>B.Com</option>
+                                    <option value="BBA" {{ 'selected' if profile and profile.branch=='BBA' }}>BBA</option>
+                                    <option value="MBA" {{ 'selected' if profile and profile.branch=='MBA' }}>MBA</option>
+                                    <option value="CA" {{ 'selected' if profile and profile.branch=='CA' }}>CA</option>
+                                </optgroup>
+                                <optgroup label="Arts & Humanities">
+                                    <option value="BA" {{ 'selected' if profile and profile.branch=='BA' }}>BA</option>
+                                    <option value="MA" {{ 'selected' if profile and profile.branch=='MA' }}>MA</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="BCA" {{ 'selected' if profile and profile.branch=='BCA' }}>BCA</option>
+                                    <option value="MCA" {{ 'selected' if profile and profile.branch=='MCA' }}>MCA</option>
+                                    <option value="Other" {{ 'selected' if profile and profile.branch=='Other' }}>Other</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="year_of_study" class="form-label">Current Stage</label>
+                            <select class="form-select" id="year_of_study" name="year_of_study">
+                                <option value="">Select</option>
+                                <optgroup label="Student">
+                                    <option value="1st Year" {{ 'selected' if profile and profile.year_of_study=='1st Year' }}>1st Year</option>
+                                    <option value="2nd Year" {{ 'selected' if profile and profile.year_of_study=='2nd Year' }}>2nd Year</option>
+                                    <option value="3rd Year" {{ 'selected' if profile and profile.year_of_study=='3rd Year' }}>3rd Year</option>
+                                    <option value="4th Year" {{ 'selected' if profile and profile.year_of_study=='4th Year' }}>4th Year</option>
+                                    <option value="5th Year" {{ 'selected' if profile and profile.year_of_study=='5th Year' }}>5th Year</option>
+                                    <option value="Graduate" {{ 'selected' if profile and profile.year_of_study=='Graduate' }}>Graduate</option>
+                                    <option value="Post Graduate" {{ 'selected' if profile and profile.year_of_study=='Post Graduate' }}>Post Graduate</option>
+                                </optgroup>
+                                <optgroup label="Professional">
+                                    <option value="Entry Level" {{ 'selected' if profile and profile.year_of_study=='Entry Level' }}>Entry Level (0-2 yrs)</option>
+                                    <option value="Mid Level" {{ 'selected' if profile and profile.year_of_study=='Mid Level' }}>Mid Level (2-5 yrs)</option>
+                                    <option value="Senior Level" {{ 'selected' if profile and profile.year_of_study=='Senior Level' }}>Senior Level (5+ yrs)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Skills -->
+                    <h5 class="fw-600 mb-3"><i class="bi bi-code-slash me-2"></i>Skills & Interests</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="technical_skills" class="form-label">
+                                Technical Skills <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="technical_skills" name="technical_skills" rows="3"
+                                placeholder="e.g., Python, Java, HTML, CSS, SQL, Machine Learning"
+                                required>{{ profile.technical_skills if profile else '' }}</textarea>
+                            <small class="text-muted">Comma-separated list of your technical skills</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="soft_skills" class="form-label">Soft Skills</label>
+                            <textarea class="form-control" id="soft_skills" name="soft_skills" rows="3"
+                                placeholder="e.g., Problem Solving, Teamwork, Communication">{{ profile.soft_skills if profile else '' }}</textarea>
+                            <small class="text-muted">Comma-separated list of your soft skills</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="interests" class="form-label">Interests</label>
+                            <textarea class="form-control" id="interests" name="interests" rows="2"
+                                placeholder="e.g., AI/ML, Web Development, Data Science">{{ profile.interests if profile else '' }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="preferred_domains" class="form-label">Preferred Domains</label>
+                            <textarea class="form-control" id="preferred_domains" name="preferred_domains" rows="2"
+                                placeholder="e.g., Backend Development, Data Analytics">{{ profile.preferred_domains if profile else '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Academic Performance -->
+                    <h5 class="fw-600 mb-3"><i class="bi bi-award me-2"></i>Academic Performance (Optional)</h5>
+                    <div class="mb-4">
+                        <label for="academic_performance" class="form-label">CGPA / Percentage</label>
+                        <input type="text" class="form-control col-md-4" id="academic_performance"
+                            name="academic_performance" value="{{ profile.academic_performance if profile else '' }}"
+                            placeholder="e.g., 8.5 CGPA or 85%">
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-lg me-2"></i>Save Profile
+                        </button>
+                        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

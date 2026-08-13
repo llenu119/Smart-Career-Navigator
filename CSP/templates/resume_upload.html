@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Upload Resume - Smart Career Navigator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <!-- Page Header -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="page-icon bg-success-subtle me-3">
+                <i class="bi bi-file-earmark-arrow-up text-success"></i>
+            </div>
+            <div>
+                <h2 class="fw-700 mb-0">Resume Analyzer</h2>
+                <p class="text-muted mb-0">Upload your resume to get a quality score and improvement tips</p>
+            </div>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="glass-card">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('resume.upload') }}" enctype="multipart/form-data">
+
+                    <!-- Drop Zone -->
+                    <div class="upload-zone text-center p-5 mb-4" id="dropZone">
+                        <i class="bi bi-cloud-arrow-up display-1 text-primary mb-3"></i>
+                        <h5 class="fw-600">Drag & Drop your resume here</h5>
+                        <p class="text-muted small mb-3">or click to browse files</p>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.docx" required
+                            style="display:none;">
+                        <button type="button" class="btn btn-outline-primary"
+                            onclick="document.getElementById('resume').click()">
+                            <i class="bi bi-folder2-open me-2"></i>Choose File
+                        </button>
+                        <p class="text-muted small mt-3 mb-0" id="fileName">Supported: PDF, DOCX (Max 16 MB)</p>
+                    </div>
+
+                    <!-- What We Analyze -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span class="small">Technical Skills</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span class="small">Education Details</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span class="small">Projects & Experience</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span class="small">Certifications</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span class="small">Resume Quality Score</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span class="small">Improvement Tips</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="uploadBtn">
+                        <i class="bi bi-upload me-2"></i>Analyze Resume
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h6 class="fw-600"><i class="bi bi-lightbulb me-2 text-warning"></i>Tips for a Better Resume Score</h6>
+                <ul class="small text-muted mb-0">
+                    <li>Include a clear <strong>Technical Skills</strong> section with specific technologies</li>
+                    <li>List at least <strong>2-3 projects</strong> with technology descriptions</li>
+                    <li>Add <strong>education details</strong> including degree and university</li>
+                    <li>Include <strong>certifications</strong> from platforms like Coursera, NPTEL</li>
+                    <li>Add <strong>LinkedIn & GitHub</strong> profile links</li>
+                    <li>Use a clean, ATS-friendly format (avoid tables in PDF)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── File input display ──
+    document.getElementById('resume').addEventListener('change', function () {
+        const fileName = this.files[0] ? this.files[0].name : 'No file selected';
+        document.getElementById('fileName').innerHTML = '<strong>' + fileName + '</strong> selected';
+        document.getElementById('dropZone').classList.add('upload-zone-active');
+    });
+
+    // ── Drag and drop support ──
+    const dropZone = document.getElementById('dropZone');
+    ['dragenter', 'dragover'].forEach(e => {
+        dropZone.addEventListener(e, function (ev) {
+            ev.preventDefault();
+            this.classList.add('upload-zone-active');
+        });
+    });
+    ['dragleave', 'drop'].forEach(e => {
+        dropZone.addEventListener(e, function (ev) {
+            ev.preventDefault();
+            this.classList.remove('upload-zone-active');
+        });
+    });
+    dropZone.addEventListener('drop', function (ev) {
+        const files = ev.dataTransfer.files;
+        if (files.length) {
+            document.getElementById('resume').files = files;
+            document.getElementById('fileName').innerHTML = '<strong>' + files[0].name + '</strong> selected';
+        }
+    });
+
+    // ── Loading state on submit ──
+    document.querySelector('form').addEventListener('submit', function () {
+        const btn = document.getElementById('uploadBtn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing...';
+        btn.disabled = true;
+    });
+</script>
+{% endblock %}

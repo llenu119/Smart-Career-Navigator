@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Smart Career Navigator - Your AI Career Guide{% endblock %}
+{% block content %}
+<section class="hero-section text-center py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="hero-icon mb-4 animate-float">
+        <i class="bi bi-rocket-takeoff"></i>
+      </div>
+      <h1 class="display-4 fw-900 mb-3 lh-1">
+        Smart Career <span class="gradient-text">Navigator</span>
+      </h1>
+      <p class="lead mb-4" style="color:var(--text-secondary);max-width:600px;margin:0 auto">
+        AI-powered career guidance for students and professionals.
+        Get personalized recommendations, resume analysis, skill gap insights,
+        and structured learning roadmaps — all powered by Groq AI.
+      </p>
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4">
+          <i class="bi bi-person-plus me-2"></i>Get Started Free
+        </a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-glass btn-lg px-4 border">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Login
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5">
+  <div class="text-center mb-5">
+    <h2 class="fw-800 mb-2">AI-Powered Features</h2>
+    <p class="text-muted">Everything you need to plan and accelerate your tech career</p>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card h-100">
+        <div class="feature-icon bg-primary-subtle"><i class="bi bi-stars text-primary"></i></div>
+        <h5 class="fw-700 mt-3">Career Recommendations</h5>
+        <p class="text-muted small mb-0">ML-powered matching using TF-IDF &amp; Cosine Similarity to find the best career roles for your skills.</p>
+        <span class="ai-badge mt-2">Groq AI Enhanced</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card h-100">
+        <div class="feature-icon bg-success-subtle"><i class="bi bi-file-earmark-check text-success"></i></div>
+        <h5 class="fw-700 mt-3">AI Resume Analyzer</h5>
+        <p class="text-muted small mb-0">Upload your resume and get a quality score, missing sections, and AI-powered improvement suggestions.</p>
+        <span class="ai-badge mt-2">Groq AI Enhanced</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card h-100">
+        <div class="feature-icon bg-warning-subtle"><i class="bi bi-puzzle text-warning"></i></div>
+        <h5 class="fw-700 mt-3">Skill Gap Analysis</h5>
+        <p class="text-muted small mb-0">AI compares your skills with career requirements and tells you exactly what to learn next.</p>
+        <span class="ai-badge mt-2">Groq AI Enhanced</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card h-100">
+        <div class="feature-icon bg-info-subtle"><i class="bi bi-mic text-info"></i></div>
+        <h5 class="fw-700 mt-3">AI Mock Interviews</h5>
+        <p class="text-muted small mb-0">Practice with AI-generated questions, get scored, and receive detailed feedback on your answers.</p>
+        <span class="ai-badge mt-2">Groq AI</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card h-100">
+        <div class="feature-icon bg-danger-subtle"><i class="bi bi-patch-question text-danger"></i></div>
+        <h5 class="fw-700 mt-3">Skill Assessments</h5>
+        <p class="text-muted small mb-0">AI-generated quizzes to test your knowledge with detailed explanations and confidence scoring.</p>
+        <span class="ai-badge mt-2">Groq AI</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card h-100">
+        <div class="feature-icon bg-secondary-subtle"><i class="bi bi-download text-secondary"></i></div>
+        <h5 class="fw-700 mt-3">PDF Career Report</h5>
+        <p class="text-muted small mb-0">Download a comprehensive AI-generated career report with recommendations, gaps, and roadmap.</p>
+        <span class="ai-badge mt-2">Groq AI Enhanced</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5">
+  <h2 class="text-center fw-800 mb-5">How It Works</h2>
+  <div class="row g-4 text-center">
+    <div class="col-md-3">
+      <div class="step-circle">1</div>
+      <h6 class="fw-700 mt-3">Create Profile</h6>
+      <p class="text-muted small">Enter your skills, interests, and academic details</p>
+    </div>
+    <div class="col-md-3">
+      <div class="step-circle">2</div>
+      <h6 class="fw-700 mt-3">AI Analysis</h6>
+      <p class="text-muted small">Groq AI analyzes your profile and matches career paths</p>
+    </div>
+    <div class="col-md-3">
+      <div class="step-circle">3</div>
+      <h6 class="fw-700 mt-3">Practice &amp; Assess</h6>
+      <p class="text-muted small">Mock interviews, quizzes &amp; skill gap analysis</p>
+    </div>
+    <div class="col-md-3">
+      <div class="step-circle">4</div>
+      <h6 class="fw-700 mt-3">Track &amp; Grow</h6>
+      <p class="text-muted small">Follow your roadmap, track courses, monitor progress</p>
+    </div>
+  </div>
+</section>
+
+<section class="py-5 text-center">
+  <div class="glass-card p-5" style="max-width:700px;margin:0 auto">
+    <i class="bi bi-robot display-3" style="color:var(--primary)"></i>
+    <h3 class="fw-800 mt-3">Powered by Groq AI</h3>
+    <p class="text-muted mb-4">All features leverage Groq's ultra-fast LLM inference for real-time AI-powered career guidance, feedback, and analysis.</p>
+    <div class="d-flex justify-content-center gap-3">
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary px-4">
+        <i class="bi bi-rocket-takeoff me-2"></i>Start Your Journey
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

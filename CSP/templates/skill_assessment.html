@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Skill Assessment - Smart Career Navigator{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="d-flex align-items-center mb-4">
+      <div class="page-icon bg-success-subtle me-3">
+        <i class="bi bi-patch-question text-success"></i>
+      </div>
+      <div>
+        <h2 class="fw-800 mb-0">Skill Assessment</h2>
+        <p class="text-muted mb-0">AI-generated quizzes to assess &amp; improve your skills</p>
+      </div>
+    </div>
+
+    <!-- Setup -->
+    <div id="quizSetup" class="glass-card p-4 mb-4">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label fw-600">Career Role</label>
+          <select id="quizRole" class="form-select">
+            <option value="">General</option>
+            {% for role in roles %}
+            <option value="{{ role }}">{{ role }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-600">Skill to Assess</label>
+          <input type="text" id="quizSkill" class="form-control" placeholder="e.g. Python, Machine Learning, SQL">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-600">Questions</label>
+          <select id="quizCount" class="form-select">
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-success mt-3" onclick="generateQuiz()">
+        <i class="bi bi-stars me-1"></i>Generate Quiz
+      </button>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quizPanel" class="d-none">
+      <div class="glass-card mb-4">
+        <div class="p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-700 mb-0"><i class="bi bi-question-circle me-2 text-success"></i><span id="quizSkillLabel"></span></h5>
+            <div class="d-flex gap-2 align-items-center">
+              <div class="px-3 py-1 rounded-pill" id="quizTimerDisplay" style="background:var(--warning-subtle);color:var(--warning);font-weight:700;font-size:0.85rem">
+                <i class="bi bi-clock me-1"></i><span id="quizTimerValue">5:00</span>
+              </div>
+              <span class="ai-badge"><i class="bi bi-robot"></i> AI</span>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="flex-grow-1 progress" style="height:6px">
+              <div class="progress-bar bg-success" id="quizProgressBar" style="width:0%"></div>
+            </div>
+            <small class="text-muted fw-600" id="quizProgressLabel">0/0</small>
+          </div>
+          <div id="questionsContainer"></div>
+        </div>
+        <div class="p-3 border-top d-flex justify-content-between align-items-center">
+          <small class="text-muted" id="quizStatus">Answer all questions then submit</small>
+          <button class="btn btn-success" onclick="submitQuiz()">
+            <i class="bi bi-check2-all me-1"></i>Submit Answers
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="quizResults" class="d-none">
+      <div class="glass-card p-5 text-center">
+        <i class="bi bi-trophy display-1" style="color:var(--warning)"></i>
+        <h3 class="fw-800 mt-3 mb-2">Assessment Complete!</h3>
+        <p class="text-muted mb-4">Here's your AI-powered skill analysis</p>
+        <div class="d-inline-block p-4 mb-3" style="border-radius:var(--radius-xl);background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.1))">
+          <div class="display-2 fw-900" id="quizScore" style="color:var(--success)">0%</div>
+        </div>
+        <p id="quizDetail" class="text-muted mb-3"></p>
+        <span class="badge fs-6 px-4 py-2 mb-3" id="quizConfidence"></span>
+        <div id="quizReview" class="text-start mx-auto mt-4" style="max-width:700px"></div>
+        <button class="btn btn-outline-success mt-4" onclick="location.reload()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Take Another Quiz
+        </button>
+      </div>
+    </div>
+
+    <!-- History -->
+    {% if history %}
+    <div class="glass-card mt-4">
+      <div class="p-4">
+        <h5 class="fw-700 mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Assessment History</h5>
+        {% for h in history %}
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+          <div>
+            <strong>{{ h.skill }}</strong>
+            <small class="text-muted ms-2">{{ h.best_score }}% best</small>
+          </div>
+          <span class="badge bg-{{ 'success' if h.confidence == 'advanced' else 'warning' if h.confidence == 'intermediate' else 'secondary' }}">
+            {{ h.confidence }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let quizQuestions = [], quizRole = '', quizSkill = '', userSelections = [];
+let quizTimerInterval = null, quizTimeLeft = 300; // 5 min overall
+
+function startQuizTimer() {
+  quizTimeLeft = 300;
+  updateQuizTimerDisplay();
+  clearInterval(quizTimerInterval);
+  quizTimerInterval = setInterval(() => {
+    quizTimeLeft--;
+    updateQuizTimerDisplay();
+    if (quizTimeLeft <= 0) {
+      clearInterval(quizTimerInterval);
+      submitQuiz();
+    }
+  }, 1000);
+}
+
+function stopQuizTimer() {
+  clearInterval(quizTimerInterval);
+}
+
+function updateQuizTimerDisplay() {
+  const mins = Math.floor(quizTimeLeft / 60);
+  const secs = quizTimeLeft % 60;
+  document.getElementById('quizTimerValue').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  const el = document.getElementById('quizTimerDisplay');
+  if (quizTimeLeft <= 60) {
+    el.style.background = 'var(--danger-subtle)';
+    el.style.color = 'var(--danger)';
+  } else if (quizTimeLeft <= 120) {
+    el.style.background = 'var(--warning-subtle)';
+    el.style.color = 'var(--warning)';
+  }
+}
+
+function generateQuiz() {
+  quizRole = document.getElementById('quizRole').value;
+  quizSkill = document.getElementById('quizSkill').value.trim();
+  const count = document.getElementById('quizCount').value;
+  if (!quizSkill) { alert('Please enter a skill to assess.'); return; }
+  document.getElementById('quizSetup').classList.add('d-none');
+  document.getElementById('quizPanel').classList.remove('d-none');
+  document.getElementById('quizSkillLabel').textContent = quizSkill;
+  fetch('/quiz/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ career_role: quizRole, skill: quizSkill, count })
+  }).then(r => r.json()).then(data => {
+    if (data.error) {
+      stopQuizTimer();
+      alert(data.error);
+      document.getElementById('quizSetup').classList.remove('d-none');
+      document.getElementById('quizPanel').classList.add('d-none');
+      return;
+    }
+    quizQuestions = data.questions || [];
+    userSelections = new Array(quizQuestions.length).fill(null);
+    renderQuestions();
+    startQuizTimer();
+  }).catch(() => { stopQuizTimer(); alert('Failed to generate quiz.'); });
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = '';
+  updateProgress();
+  quizQuestions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'mb-3 p-3 border rounded';
+    div.innerHTML = `
+      <p class="fw-600 mb-2">${i + 1}. ${q.question}</p>
+      ${(q.options || []).map((opt, j) => `
+        <div class="quiz-option" data-q="${i}" data-opt="${j}" onclick="selectOption(${i}, ${j})">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="q${i}" value="${j}" id="q${i}_${j}">
+            <label class="form-check-label" for="q${i}_${j}">${opt}</label>
+          </div>
+        </div>
+      `).join('')}`;
+    container.appendChild(div);
+  });
+}
+
+function selectOption(qIdx, optIdx) {
+  userSelections[qIdx] = optIdx;
+  document.querySelectorAll(`.quiz-option[data-q="${qIdx}"]`).forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.opt) === optIdx);
+    el.querySelector('input').checked = parseInt(el.dataset.opt) === optIdx;
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  const answered = userSelections.filter(s => s !== null).length;
+  const total = quizQuestions.length;
+  document.getElementById('quizProgressBar').style.width = total ? `${(answered/total)*100}%` : '0%';
+  document.getElementById('quizProgressLabel').textContent = `${answered}/${total}`;
+}
+
+function submitQuiz() {
+  stopQuizTimer();
+  const correct = userSelections.map((s, i) => ({ selected: s, correct: quizQuestions[i] ? quizQuestions[i].correct : 0 }));
+  fetch('/quiz/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ career_role: quizRole, skill: quizSkill, answers: correct })
+  }).then(r => r.json()).then(data => {
+    document.getElementById('quizPanel').classList.add('d-none');
+    document.getElementById('quizResults').classList.remove('d-none');
+    document.getElementById('quizScore').textContent = `${data.score}%`;
+    document.getElementById('quizDetail').textContent = `${data.correct} correct out of ${data.total}`;
+    const badge = document.getElementById('quizConfidence');
+    badge.textContent = `Confidence: ${data.confidence}`;
+    badge.className = `badge fs-6 px-4 py-2 bg-${data.confidence === 'advanced' ? 'success' : data.confidence === 'intermediate' ? 'warning' : 'secondary'}`;
+
+    // Show review
+    const review = document.getElementById('quizReview');
+    review.innerHTML = '<h6 class="fw-700 mb-3"><i class="bi bi-eye me-2"></i>Answer Review</h6>';
+    quizQuestions.forEach((q, i) => {
+      const userAns = userSelections[i];
+      const isCorrect = userAns === q.correct;
+      review.innerHTML += `
+        <div class="p-3 mb-2 border rounded ${isCorrect ? 'border-success' : 'border-danger'}">
+          <p class="fw-600 mb-1">${i+1}. ${q.question}</p>
+          <div class="d-flex gap-2 mb-1">
+            <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">${isCorrect ? 'Correct' : 'Incorrect'}</span>
+            <span class="text-muted small">Your answer: ${userAns !== null ? q.options[userAns] : 'Not answered'}</span>
+          </div>
+          ${!isCorrect ? `<small class="text-success">Correct answer: ${q.options[q.correct]}</small><br>` : ''}
+          ${q.explanation ? `<small class="text-muted">${q.explanation}</small>` : ''}
+        </div>`;
+    });
+  });
+}
+</script>
+{% endblock %}

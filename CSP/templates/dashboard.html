@@ -1,0 +1,805 @@
+{% extends "base.html" %} {% block title %}Dashboard - Smart Career Navigator{%
+endblock %} {% block content %}
+<!-- Welcome Header -->
+<div
+  class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"
+>
+  <div>
+    <h2 class="fw-800 mb-1">
+      <i class="bi bi-hand-thumbs-up me-2" style="color: var(--primary)"></i
+      >Hello, {{ current_user.username }}!
+    </h2>
+    <p class="text-muted mb-0">
+      Here's your AI-powered career guidance overview
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a
+      href="{{ url_for('dashboard.get_recommendations') }}"
+      class="btn btn-primary"
+    >
+      <i class="bi bi-stars me-1"></i>Get Recommendations
+    </a>
+    <a
+      href="{{ url_for('dashboard.profile') }}"
+      class="btn btn-outline-primary"
+    >
+      <i class="bi bi-pencil me-1"></i>Edit Profile
+    </a>
+    <a
+      href="{{ url_for('dashboard.download_report') }}"
+      class="btn btn-outline-secondary"
+    >
+      <i class="bi bi-download me-1"></i>Download Report
+    </a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary-subtle">
+        <i class="bi bi-bullseye text-primary"></i>
+      </div>
+      <div class="stat-value">
+        {{ recommendations|length if recommendations else 0 }}
+      </div>
+      <div class="stat-label">Career Matches</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-success-subtle">
+        <i class="bi bi-check2-circle text-success"></i>
+      </div>
+      <div class="stat-value">
+        {% if recommendations %}{{ "%.0f"|format(recommendations[0].match_score)
+        }}%{% else %}--{% endif %}
+      </div>
+      <div class="stat-label">Top Match Score</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-warning-subtle">
+        <i class="bi bi-file-earmark-text text-warning"></i>
+      </div>
+      <div class="stat-value">
+        {% if resume %}{{ "%.0f"|format(resume.resume_score) }}{% else %}--{%
+        endif %}
+      </div>
+      <div class="stat-label">Resume Score</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-info-subtle">
+        <i class="bi bi-code-slash text-info"></i>
+      </div>
+      <div class="stat-value">
+        {% if profile and profile.technical_skills %}{{
+        profile.technical_skills.split(',')|length }}{% else %}0{% endif %}
+      </div>
+      <div class="stat-label">Skills Listed</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Token Meter -->
+{% if token_limit is defined %}
+<div class="glass-card p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-lightning-charge" style="color: var(--warning)"></i>
+      <span class="fw-600 small">AI Token Usage</span>
+      <span class="ai-badge"><i class="bi bi-robot"></i> Monthly</span>
+    </div>
+    <small class="text-muted">{{ token_used }}/{{ token_limit }} tokens</small>
+  </div>
+  <div class="token-meter mt-2">
+    <div class="fill" style="width:{{ token_percentage }}%"></div>
+  </div>
+  {% if token_warning %}
+  <small class="text-warning mt-1 d-block"
+    ><i class="bi bi-exclamation-triangle me-1"></i>{{ token_warning }}</small
+  >
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Profile Completion Alert -->
+{% if not profile or not profile.technical_skills %}
+<div class="alert alert-warning d-flex align-items-center" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+  <div>
+    <strong>Complete your profile to get started!</strong><br />
+    <small
+      >Add your technical skills and interests so our AI can recommend careers
+      for you.</small
+    >
+  </div>
+  <a
+    href="{{ url_for('dashboard.profile') }}"
+    class="btn btn-warning btn-sm ms-auto"
+  >
+    <i class="bi bi-pencil me-1"></i>Complete Profile
+  </a>
+</div>
+{% endif %}
+
+<!-- AI Tools Grid -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-3 col-md-6">
+    <a
+      href="{{ url_for('dashboard.interview_page') }}"
+      class="text-decoration-none"
+    >
+      <div class="glass-card h-100 p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-mic display-5" style="color: #6366f1"></i>
+        </div>
+        <h6 class="fw-700">AI Mock Interview</h6>
+        <p class="small text-muted mb-0">Practice with AI-powered interviews</p>
+        <span class="ai-badge mt-2"><i class="bi bi-robot"></i> Groq AI</span>
+      </div>
+    </a>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <a href="{{ url_for('dashboard.quiz_page') }}" class="text-decoration-none">
+      <div class="glass-card h-100 p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-patch-question display-5" style="color: #10b981"></i>
+        </div>
+        <h6 class="fw-700">Skill Assessment</h6>
+        <p class="small text-muted mb-0">Test knowledge with AI quizzes</p>
+        <span class="ai-badge mt-2"><i class="bi bi-robot"></i> Groq AI</span>
+      </div>
+    </a>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <a
+      href="{{ url_for('dashboard.insights_page') }}"
+      class="text-decoration-none"
+    >
+      <div class="glass-card h-100 p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-graph-up-arrow display-5" style="color: #f59e0b"></i>
+        </div>
+        <h6 class="fw-700">Career Insights</h6>
+        <p class="small text-muted mb-0">Salary trends, demand &amp; growth</p>
+        <span class="ai-badge mt-2"><i class="bi bi-robot"></i> Groq AI</span>
+      </div>
+    </a>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <a
+      href="{{ url_for('dashboard.courses_page') }}"
+      class="text-decoration-none"
+    >
+      <div class="glass-card h-100 p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-bookmark-check display-5" style="color: #8b5cf6"></i>
+        </div>
+        <h6 class="fw-700">Course Tracker</h6>
+        <p class="small text-muted mb-0">Track learning progress</p>
+        <span class="ai-badge mt-2"><i class="bi bi-robot"></i> Groq AI</span>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Career Recommendations -->
+  <div class="col-lg-8">
+    <div class="glass-card p-4">
+      <h5 class="fw-700 mb-3">
+        <i class="bi bi-stars me-2 text-primary"></i>Career Recommendations
+      </h5>
+      {% if recommendations %} {% for rec in recommendations %}
+      <div class="recommendation-card p-3 mb-3">
+        <div
+          class="d-flex justify-content-between align-items-start flex-wrap gap-2"
+        >
+          <div>
+            <h6 class="fw-700 mb-1">{{ rec.career_role }}</h6>
+            <div class="d-flex gap-1 flex-wrap">
+              {% for skill in rec.matched_skills.split(',')[:5] if skill.strip()
+              %}
+              <span class="badge bg-success-subtle text-success"
+                >{{ skill.strip() }}</span
+              >
+              {% endfor %}
+            </div>
+          </div>
+          <div class="text-end">
+            <div
+              class="match-score {% if rec.match_score >= 70 %}score-high{% elif rec.match_score >= 40 %}score-medium{% else %}score-low{% endif %}"
+            >
+              {{ "%.0f"|format(rec.match_score) }}%
+            </div>
+          </div>
+        </div>
+        <div class="progress mt-2" style="height: 6px">
+          <div
+            class="progress-bar {% if rec.match_score >= 70 %}bg-success{% elif rec.match_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+            style="width:{{ rec.match_score }}%"
+          ></div>
+        </div>
+        <div class="mt-2 d-flex gap-2">
+          <a
+            href="{{ url_for('dashboard.skill_gap', career_role=rec.career_role) }}"
+            class="btn btn-sm btn-outline-primary"
+            ><i class="bi bi-puzzle me-1"></i>Skill Gap</a
+          >
+          <a
+            href="{{ url_for('dashboard.roadmap', career_role=rec.career_role) }}"
+            class="btn btn-sm btn-outline-success"
+            ><i class="bi bi-map me-1"></i>Roadmap</a
+          >
+          <button
+            class="btn btn-sm btn-outline-info"
+            onclick="explainRec('{{ rec.career_role }}', this)"
+          >
+            <i class="bi bi-robot me-1"></i>AI Explain
+          </button>
+        </div>
+        <div class="rec-explanation mt-2 small" style="display: none"></div>
+      </div>
+      {% endfor %} {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-compass display-1" style="color: var(--text-muted)"></i>
+        <p class="text-muted mt-3 mb-0">
+          No recommendations yet. Complete your profile and click
+          <strong>"Get Recommendations"</strong>.
+        </p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <!-- Resume Score -->
+    <div class="glass-card p-4 mb-4">
+      <h5 class="fw-700 mb-3">
+        <i class="bi bi-file-earmark-check me-2 text-success"></i>Resume Score
+      </h5>
+      {% if resume %}
+      <div class="resume-score-circle mx-auto mb-3">
+        <svg viewBox="0 0 120 120">
+          <circle
+            cx="60"
+            cy="60"
+            r="52"
+            fill="none"
+            stroke="var(--border)"
+            stroke-width="10"
+          />
+          <circle
+            cx="60"
+            cy="60"
+            r="52"
+            fill="none"
+            stroke="{% if resume.resume_score >= 70 %}#10b981{% elif resume.resume_score >= 40 %}#f59e0b{% else %}#ef4444{% endif %}"
+            stroke-width="10"
+            stroke-dasharray="{{ resume.resume_score * 3.27 }} 327"
+            stroke-linecap="round"
+            transform="rotate(-90 60 60)"
+          />
+          <text x="60" y="65" text-anchor="middle" class="score-text">
+            {{ "%.0f"|format(resume.resume_score) }}
+          </text>
+        </svg>
+      </div>
+      <p class="text-muted small text-center">out of 100</p>
+      <a
+        href="{{ url_for('resume.results') }}"
+        class="btn btn-outline-success w-100 btn-sm"
+        ><i class="bi bi-eye me-1"></i>View Analysis</a
+      >
+      {% else %}
+      <div class="text-center py-3">
+        <i
+          class="bi bi-cloud-upload display-4"
+          style="color: var(--text-muted)"
+        ></i>
+        <p class="text-muted mt-2 small">
+          Upload your resume to get a quality score
+        </p>
+        <a href="{{ url_for('resume.upload') }}" class="btn btn-primary btn-sm"
+          ><i class="bi bi-upload me-1"></i>Upload Resume</a
+        >
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Skills -->
+    <div class="glass-card p-4">
+      <h5 class="fw-700 mb-3">
+        <i class="bi bi-person-badge me-2 text-info"></i>My Skills
+      </h5>
+      {% if profile and profile.technical_skills %}
+      <div class="d-flex flex-wrap gap-1">
+        {% for skill in profile.technical_skills.split(',') if skill.strip() %}
+        <span class="badge bg-primary-subtle text-primary"
+          >{{ skill.strip() }}</span
+        >
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted small mb-0">No skills added yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Chart -->
+{% if recommendations %}
+<div class="row mt-4">
+  <div class="col-lg-8">
+    <div class="glass-card p-4">
+      <h5 class="fw-700 mb-3">
+        <i class="bi bi-bar-chart me-2 text-primary"></i>Career Match Comparison
+      </h5>
+      <canvas id="matchChart" height="250"></canvas>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Cover Letter -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="glass-card">
+      <div class="p-4 d-flex justify-content-between align-items-center">
+        <h5 class="fw-700 mb-0">
+          <i class="bi bi-envelope-paper me-2" style="color: var(--primary)"></i
+          >AI Cover Letter Generator
+        </h5>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#coverLetterPanel"
+        >
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+      <div class="collapse show" id="coverLetterPanel">
+        <div class="px-4 pb-4">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-600">Target Role</label>
+              <select id="clRole" class="form-select form-select-sm">
+                {% if recommendations %} {% for rec in recommendations %}
+                <option value="{{ rec.career_role }}">
+                  {{ rec.career_role }}
+                </option>
+                {% endfor %} {% elif cover_roles %} {% for role in cover_roles
+                %}
+                <option value="{{ role }}">{{ role }}</option>
+                {% endfor %} {% else %}
+                <option value="">No roles available</option>
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-600"
+                >Company <span class="text-muted">(optional)</span></label
+              >
+              <input
+                id="clCompany"
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="e.g. Google, TCS"
+              />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small fw-600">Tone</label>
+              <select id="clTone" class="form-select form-select-sm">
+                <option value="professional">Professional</option>
+                <option value="enthusiastic">Enthusiastic</option>
+                <option value="concise">Concise</option>
+              </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button
+                id="btnGenerateCL"
+                class="btn btn-primary btn-sm w-100"
+                onclick="generateCoverLetter()"
+              >
+                <i class="bi bi-stars me-1"></i>Generate
+              </button>
+            </div>
+          </div>
+          <div id="clLoading" class="text-center py-3 d-none">
+            <div
+              class="spinner-border spinner-border-sm text-primary me-2"
+            ></div>
+            <span class="text-muted small"
+              >Groq AI is crafting your letter...</span
+            >
+          </div>
+          <div id="clOutput" class="d-none">
+            <div class="mb-2 d-flex justify-content-between align-items-center">
+              <small class="text-muted fw-600">Subject</small>
+              <button
+                class="btn btn-xs btn-outline-secondary btn-sm py-0"
+                onclick="copyText('clSubject')"
+              >
+                <i class="bi bi-copy me-1"></i>Copy
+              </button>
+            </div>
+            <input
+              id="clSubject"
+              class="form-control form-control-sm mb-3"
+              readonly
+            />
+            <div class="mb-2 d-flex justify-content-between align-items-center">
+              <small class="text-muted fw-600">Cover Letter</small>
+              <button
+                class="btn btn-xs btn-outline-secondary btn-sm py-0"
+                onclick="copyText('clBody')"
+              >
+                <i class="bi bi-copy me-1"></i>Copy
+              </button>
+            </div>
+            <textarea
+              id="clBody"
+              class="form-control"
+              rows="10"
+              readonly
+            ></textarea>
+          </div>
+          <div id="clError" class="alert alert-danger d-none mt-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Career Chatbot -->
+<div class="row mt-4 mb-4">
+  <div class="col-12">
+    <div class="glass-card">
+      <div class="p-4 d-flex justify-content-between align-items-center">
+        <h5 class="fw-700 mb-0">
+          <i class="bi bi-chat-dots me-2" style="color: var(--primary)"></i>AI
+          Career Advisor
+        </h5>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#chatPanel"
+        >
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+      <div class="collapse show" id="chatPanel">
+        <div class="px-4 pb-4">
+          <div
+            id="chatMessages"
+            style="
+              height: 320px;
+              overflow-y: auto;
+              background: var(--bg);
+              border-radius: var(--radius-md);
+              padding: 16px;
+            "
+            class="mb-3"
+          >
+            <div class="d-flex mb-3">
+              <div class="chat-ai-avatar me-2">
+                <i class="bi bi-robot text-white" style="font-size: 14px"></i>
+              </div>
+              <div class="chat-bubble-ai">
+                <p class="mb-0 small">
+                  Hi! I'm your AI career advisor powered by Groq. Ask me
+                  anything — interview tips, which skills to learn next, how to
+                  switch careers, salary expectations, or anything else on your
+                  mind. 🚀
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <input
+              id="chatInput"
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Ask anything about your career..."
+              onkeydown="if (event.key === 'Enter') sendChat();"
+            />
+            <button
+              class="btn btn-primary btn-sm px-3"
+              onclick="sendChat()"
+              id="chatSendBtn"
+            >
+              <i class="bi bi-send"></i>
+            </button>
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              onclick="clearChat()"
+              title="Clear chat"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div class="mt-2 d-flex flex-wrap gap-1">
+            <span
+              class="badge bg-light text-secondary"
+              style="cursor: pointer; font-size: 0.7rem"
+              onclick="quickAsk('What skills should I learn first?')"
+              >What skills to learn first?</span
+            >
+            <span
+              class="badge bg-light text-secondary"
+              style="cursor: pointer; font-size: 0.7rem"
+              onclick="quickAsk('How do I prepare for technical interviews?')"
+              >Interview prep tips</span
+            >
+            <span
+              class="badge bg-light text-secondary"
+              style="cursor: pointer; font-size: 0.7rem"
+              onclick="quickAsk('What salary can I expect as a fresher?')"
+              >Fresher salary range</span
+            >
+            <span
+              class="badge bg-light text-secondary"
+              style="cursor: pointer; font-size: 0.7rem"
+              onclick="
+                quickAsk(
+                  'Which career role is best for me based on my profile?',
+                )
+              "
+              >Best role for me?</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %} {% if recommendations %}
+<script>
+  const ctx = document.getElementById('matchChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [{% for r in recommendations %}'{{ r.career_role }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Match Score (%)',
+        data: [{% for r in recommendations %}{{ "%.1f"|format(r.match_score) }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: ['rgba(99,102,241,0.8)','rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(239,68,68,0.8)','rgba(139,92,246,0.8)'],
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 100, grid: { color: 'var(--border)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+{% endif %}
+
+<script>
+  async function explainRec(role, btn) {
+    const card =
+      btn.closest(".recommendation-card") || btn.parentElement.parentElement;
+    const explainDiv = card.querySelector(".rec-explanation");
+    if (explainDiv.style.display !== "none") {
+      explainDiv.style.display = "none";
+      btn.innerHTML = '<i class="bi bi-robot me-1"></i>AI Explain';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML =
+      '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+    try {
+      const res = await fetch(
+        "/recommendation-explain/" + encodeURIComponent(role),
+      );
+      const data = await res.json();
+      if (data.error)
+        explainDiv.innerHTML =
+          '<span class="text-danger">' + data.error + "</span>";
+      else
+        explainDiv.innerHTML =
+          '<div class="p-3 rounded" style="background:var(--primary-subtle)"><strong>AI Summary:</strong> ' +
+          data.summary +
+          "<br><strong>Why you match:</strong> " +
+          data.why_match +
+          "<br><strong>Focus on:</strong> " +
+          data.what_to_learn +
+          "</div>";
+      explainDiv.style.display = "block";
+      btn.innerHTML = '<i class="bi bi-robot me-1"></i>AI Explain';
+    } catch (e) {
+      explainDiv.innerHTML =
+        '<span class="text-danger">Service unavailable.</span>';
+      explainDiv.style.display = "block";
+      btn.innerHTML = '<i class="bi bi-robot me-1"></i>AI Explain';
+    }
+    btn.disabled = false;
+  }
+
+  let chatHistory = [];
+
+  function appendMessage(role, text) {
+    const box = document.getElementById("chatMessages");
+    const isAI = role === "assistant";
+    const html = isAI
+      ? `
+    <div class="d-flex mb-3">
+      <div class="chat-ai-avatar me-2"><i class="bi bi-robot text-white" style="font-size:14px"></i></div>
+      <div class="chat-bubble-ai"><p class="mb-0 small" style="white-space:pre-wrap">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p></div>
+    </div>`
+      : `
+    <div class="d-flex mb-3 flex-row-reverse">
+      <div class="chat-user-avatar ms-2"><i class="bi bi-person text-secondary" style="font-size:14px"></i></div>
+      <div class="chat-bubble-user"><p class="mb-0 small" style="white-space:pre-wrap">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p></div>
+    </div>`;
+    box.insertAdjacentHTML("beforeend", html);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function appendTyping() {
+    const box = document.getElementById("chatMessages");
+    box.insertAdjacentHTML(
+      "beforeend",
+      `<div id="typingIndicator" class="d-flex mb-3">
+      <div class="chat-ai-avatar me-2"><i class="bi bi-robot text-white" style="font-size:14px"></i></div>
+      <div class="chat-bubble-ai"><span class="text-muted small"><span class="spinner-grow spinner-grow-sm me-1" style="width:.4rem;height:.4rem"></span>Thinking...</span></div>
+    </div>`,
+    );
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById("chatInput");
+    const btn = document.getElementById("chatSendBtn");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    btn.disabled = true;
+    appendMessage("user", text);
+    chatHistory.push({ role: "user", content: text });
+    appendTyping();
+    try {
+      const res = await fetch("/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: chatHistory }),
+      });
+      const data = await res.json();
+      document.getElementById("typingIndicator")?.remove();
+      appendMessage("assistant", data.reply);
+      chatHistory.push({ role: "assistant", content: data.reply });
+    } catch (e) {
+      document.getElementById("typingIndicator")?.remove();
+      appendMessage(
+        "assistant",
+        "Sorry, something went wrong. Please try again.",
+      );
+    } finally {
+      btn.disabled = false;
+      input.focus();
+    }
+  }
+
+  function quickAsk(q) {
+    document.getElementById("chatInput").value = q;
+    sendChat();
+  }
+  function clearChat() {
+    chatHistory = [];
+    document.getElementById("chatMessages").innerHTML =
+      `<div class="d-flex mb-3">
+      <div class="chat-ai-avatar me-2"><i class="bi bi-robot text-white" style="font-size:14px"></i></div>
+      <div class="chat-bubble-ai"><p class="mb-0 small">Chat cleared! Ask me anything about your career. 🚀</p></div>
+    </div>`;
+  }
+
+  async function generateCoverLetter() {
+    // Defensive lookups: if any expected element is missing from the page
+    // (stale cached HTML, a browser extension mutating the DOM, etc.) we
+    // want a clear console warning and a graceful stop -- not a silent
+    // crash that aborts before the request is even sent, which is
+    // indistinguishable from "nothing happened" and never shows up
+    // anywhere (not the UI, not the AI activity log, nothing).
+    const ids = [
+      "btnGenerateCL",
+      "clRole",
+      "clCompany",
+      "clTone",
+      "clOutput",
+      "clError",
+      "clLoading",
+      "clSubject",
+      "clBody",
+    ];
+    const el = {};
+    for (const id of ids) {
+      el[id] = document.getElementById(id);
+      if (!el[id]) {
+        console.error(
+          `Cover letter generator: expected element #${id} not found on the page. Try a hard refresh (Ctrl+Shift+R) -- the page may be showing a stale cached version.`,
+        );
+      }
+    }
+    if (!el.btnGenerateCL || !el.clRole) {
+      alert(
+        "The cover letter form didn't load correctly. Please refresh the page (Ctrl+Shift+R) and try again.",
+      );
+      return;
+    }
+
+    const role = el.clRole.value;
+    if (!role) {
+      alert("Please select a target role.");
+      return;
+    }
+    const company = (el.clCompany?.value || "").trim();
+    const tone = el.clTone?.value || "professional";
+
+    el.clOutput?.classList.add("d-none");
+    el.clError?.classList.add("d-none");
+    el.clLoading?.classList.remove("d-none");
+    el.btnGenerateCL.disabled = true;
+
+    try {
+      const res = await fetch("/generate-cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          career_role: role,
+          company_name: company,
+          tone,
+        }),
+      });
+      const data = await res.json();
+      el.clLoading?.classList.add("d-none");
+      if (data.error && !data.cover_letter) {
+        if (el.clError) {
+          el.clError.textContent = data.error;
+          el.clError.classList.remove("d-none");
+        }
+      } else {
+        if (el.clSubject) el.clSubject.value = data.subject || "";
+        if (el.clBody) el.clBody.value = data.cover_letter || "";
+        el.clOutput?.classList.remove("d-none");
+        if (data.error && el.clError) {
+          el.clError.textContent = data.error;
+          el.clError.classList.remove("d-none");
+        }
+      }
+    } catch (e) {
+      console.error("Cover letter generation failed:", e);
+      el.clLoading?.classList.add("d-none");
+      if (el.clError) {
+        el.clError.textContent = "Request failed. Check your connection.";
+        el.clError.classList.remove("d-none");
+      }
+    } finally {
+      el.btnGenerateCL.disabled = false;
+    }
+  }
+
+  function copyText(id) {
+    const el = document.getElementById(id);
+    navigator.clipboard.writeText(el.value).then(() => {
+      const btn = event.target.closest("button");
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+      setTimeout(() => (btn.innerHTML = orig), 1500);
+    });
+  }
+</script>
+{% endblock %}

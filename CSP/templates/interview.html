@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block title %}AI Mock Interview - Smart Career Navigator{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="d-flex align-items-center mb-4">
+      <div class="page-icon bg-primary-subtle me-3">
+        <i class="bi bi-mic text-primary"></i>
+      </div>
+      <div>
+        <h2 class="fw-800 mb-0">AI Mock Interview</h2>
+        <p class="text-muted mb-0">Practice with AI-generated questions &amp; get detailed feedback</p>
+      </div>
+    </div>
+
+    <!-- Setup -->
+    <div id="setupPanel" class="glass-card p-4 mb-4">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label fw-600">Target Role</label>
+          <select id="interviewRole" class="form-select">
+            <option value="">Select a career role...</option>
+            {% for role in roles %}
+            <option value="{{ role }}">{{ role }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-600">Experience Level</label>
+          <select id="interviewLevel" class="form-select">
+            <option value="junior">Junior / Entry Level</option>
+            <option value="mid">Mid Level</option>
+            <option value="senior">Senior Level</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary w-100" onclick="startInterview()">
+            <i class="bi bi-play-circle me-1"></i>Start Interview
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Panel -->
+    <div id="interviewPanel" class="d-none">
+      <div class="glass-card mb-4">
+        <div class="p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h5 class="fw-700 mb-0"><i class="bi bi-question-circle me-2 text-primary"></i>Interview Session</h5>
+              <small class="text-muted" id="interviewProgress">Question 1 of 6</small>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              <div class="px-3 py-1 rounded-pill" id="timerDisplay" style="background:var(--warning-subtle);color:var(--warning);font-weight:700;font-size:0.9rem">
+                <i class="bi bi-clock me-1"></i><span id="timerValue">2:00</span>
+              </div>
+              <span class="ai-badge"><i class="bi bi-robot"></i> AI</span>
+              <button class="btn btn-sm btn-outline-danger" onclick="endInterview()">
+                <i class="bi bi-stop-circle me-1"></i>End
+              </button>
+            </div>
+          </div>
+          <div class="interview-progress" id="progressSteps"></div>
+          <div id="questionDisplay" class="mb-4">
+            <div class="p-3" style="background:var(--primary-subtle);border-radius:var(--radius-md);border-left:3px solid var(--primary)">
+              <strong class="d-block mb-1" style="font-size:0.8rem;color:var(--primary);text-transform:uppercase;letter-spacing:0.04em;">Question</strong>
+              <p id="currentQuestion" class="mb-0 fw-500"></p>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-600">Your Answer</label>
+            <textarea id="answerInput" class="form-control" rows="5" placeholder="Type your answer here..."></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" onclick="submitAnswer()"><i class="bi bi-send me-1"></i>Submit Answer</button>
+            <button class="btn btn-outline-secondary" onclick="skipQuestion()"><i class="bi bi-skip-forward me-1"></i>Skip</button>
+          </div>
+          <div id="feedbackDisplay" class="mt-4 d-none">
+            <hr>
+            <h6 class="fw-700"><i class="bi bi-chat-dots me-2 text-primary"></i>AI Feedback</h6>
+            <div class="row g-3">
+              <div class="col-md-2">
+                <div class="text-center p-3" style="background:var(--primary-subtle);border-radius:var(--radius-md)">
+                  <div class="display-4 fw-800" id="answerScore" style="color:var(--primary)">0</div>
+                  <small class="text-muted">/ 10</small>
+                </div>
+              </div>
+              <div class="col-md-10">
+                <p id="answerFeedback" class="mb-2"></p>
+                <div class="d-flex gap-2 flex-wrap">
+                  <span class="badge bg-success-subtle text-success" id="strengthsDisplay"></span>
+                  <span class="badge bg-warning-subtle text-warning" id="improvementsDisplay"></span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-outline-primary mt-3" onclick="nextQuestion()">
+              <i class="bi bi-arrow-right me-1"></i>Next Question
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsPanel" class="d-none">
+      <div class="glass-card p-5 text-center">
+        <div class="mb-3">
+          <i class="bi bi-trophy display-1" style="color:var(--warning)"></i>
+        </div>
+        <h3 class="fw-800 mb-2">Interview Complete!</h3>
+        <p class="text-muted mb-4">Here's your AI-powered performance analysis</p>
+        <div class="d-inline-block p-4 mb-3" style="border-radius:var(--radius-xl);background:linear-gradient(135deg,var(--primary-subtle),var(--purple-subtle))">
+          <div class="display-2 fw-900 gradient-text" id="finalScore">0</div>
+          <small class="text-muted">out of 100</small>
+        </div>
+        <div class="row justify-content-center mb-4">
+          <div class="col-md-3 col-6">
+            <div class="insight-stat"><div class="value" id="totalAnswers">0</div><div class="label">Answered</div></div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="insight-stat"><div class="value" id="avgQScore">0</div><div class="label">Avg Score</div></div>
+          </div>
+        </div>
+        <div id="finalFeedback" class="text-start mx-auto" style="max-width:600px"></div>
+        <button class="btn btn-primary mt-4" onclick="location.reload()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Start New Interview
+        </button>
+      </div>
+    </div>
+
+    <!-- History -->
+    {% if history %}
+    <div class="glass-card mt-4">
+      <div class="p-4">
+        <h5 class="fw-700 mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Interviews</h5>
+        {% for h in history %}
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+          <div>
+            <strong>{{ h.career_role }}</strong>
+            <small class="text-muted ms-2">{{ h.started_at.strftime('%Y-%m-%d') if h.started_at and h.started_at is not string else (h.started_at[:10] if h.started_at else '') }}</small>
+          </div>
+          <span class="badge bg-primary">{{ h.score or '--' }}/100</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let interviewId = null, questions = [], currentIdx = 0, role = '', totalScore = 0, answerCount = 0;
+let timerInterval = null, timeLeft = 120;
+const TIME_PER_QUESTION = 120;
+
+function startTimer() {
+  timeLeft = TIME_PER_QUESTION;
+  updateTimerDisplay();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById('timerDisplay').style.background = 'var(--danger-subtle)';
+      document.getElementById('timerDisplay').style.color = 'var(--danger)';
+      if (!document.getElementById('feedbackDisplay').classList.contains('d-none')) return;
+      document.getElementById('answerInput').value = '(Time expired)';
+      submitAnswer();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  document.getElementById('timerValue').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  if (timeLeft <= 30) {
+    document.getElementById('timerDisplay').style.background = 'var(--danger-subtle)';
+    document.getElementById('timerDisplay').style.color = 'var(--danger)';
+  }
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+}
+
+function startInterview() {
+  role = document.getElementById('interviewRole').value;
+  const level = document.getElementById('interviewLevel').value;
+  if (!role) { alert('Please select a career role.'); return; }
+  document.getElementById('setupPanel').classList.add('d-none');
+  document.getElementById('interviewPanel').classList.remove('d-none');
+  fetch('/interview/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ career_role: role, level })
+  }).then(r => r.json()).then(data => {
+    if (data.error) {
+      alert(data.error);
+      document.getElementById('setupPanel').classList.remove('d-none');
+      document.getElementById('interviewPanel').classList.add('d-none');
+      return;
+    }
+    interviewId = data.interview_id;
+    questions = data.questions || [];
+    currentIdx = 0;
+    totalScore = 0; answerCount = 0;
+    renderProgress();
+    showQuestion();
+  }).catch(() => {
+    alert('Failed to start interview. Please try again.');
+    document.getElementById('setupPanel').classList.remove('d-none');
+    document.getElementById('interviewPanel').classList.add('d-none');
+  });
+}
+
+function renderProgress() {
+  const box = document.getElementById('progressSteps');
+  box.innerHTML = questions.map((_, i) =>
+    `<div class="step ${i === 0 ? 'active' : ''}" data-idx="${i}"></div>`
+  ).join('');
+}
+
+function showQuestion() {
+  document.getElementById('feedbackDisplay').classList.add('d-none');
+  document.getElementById('answerInput').value = '';
+  document.getElementById('currentQuestion').textContent = questions[currentIdx];
+  document.getElementById('interviewProgress').textContent = `Question ${currentIdx + 1} of ${questions.length}`;
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.className = 'step';
+    if (i < currentIdx) s.classList.add('completed');
+    else if (i === currentIdx) s.classList.add('active');
+  });
+  document.getElementById('timerDisplay').style.background = 'var(--warning-subtle)';
+  document.getElementById('timerDisplay').style.color = 'var(--warning)';
+  startTimer();
+}
+
+function submitAnswer() {
+  const answer = document.getElementById('answerInput').value.trim() || '(Skipped)';
+  stopTimer();
+  fetch('/interview/answer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ interview_id: interviewId, question: questions[currentIdx], answer, career_role: role })
+  }).then(r => r.json()).then(data => {
+    document.getElementById('answerScore').textContent = data.score || 0;
+    document.getElementById('answerFeedback').textContent = data.feedback || 'No feedback available.';
+    document.getElementById('strengthsDisplay').textContent = data.strengths && data.strengths.length ? 'Strengths: ' + data.strengths.join(', ') : 'Strengths: --';
+    document.getElementById('improvementsDisplay').textContent = data.improvements && data.improvements.length ? 'Improve: ' + data.improvements.join(', ') : 'Improve: --';
+    document.getElementById('feedbackDisplay').classList.remove('d-none');
+    totalScore += (data.score || 5);
+    answerCount++;
+  }).catch(() => {
+    document.getElementById('answerScore').textContent = '5';
+    document.getElementById('answerFeedback').textContent = 'Feedback temporarily unavailable. Your answer has been recorded.';
+    document.getElementById('feedbackDisplay').classList.remove('d-none');
+    totalScore += 5;
+    answerCount++;
+  });
+}
+
+function nextQuestion() {
+  currentIdx++;
+  if (currentIdx >= questions.length) completeInterview();
+  else showQuestion();
+}
+
+function skipQuestion() {
+  document.getElementById('answerInput').value = '';
+  submitAnswer();
+  setTimeout(nextQuestion, 300);
+}
+
+function completeInterview() {
+  stopTimer();
+  fetch(`/interview/${interviewId}/complete`, { method: 'POST' })
+  .then(r => r.json()).then(data => {
+    document.getElementById('interviewPanel').classList.add('d-none');
+    document.getElementById('resultsPanel').classList.remove('d-none');
+    document.getElementById('finalScore').textContent = data.score || Math.round(totalScore / Math.max(answerCount, 1) * 10);
+    document.getElementById('totalAnswers').textContent = answerCount;
+    document.getElementById('avgQScore').textContent = answerCount ? (totalScore / answerCount).toFixed(1) : '0';
+    const fb = document.getElementById('finalFeedback');
+    fb.innerHTML = '<h6 class="fw-700 mb-2"><i class="bi bi-list-check me-2"></i>Feedback Summary</h6>';
+    if (data.feedback_summary && data.feedback_summary.length) {
+      data.feedback_summary.forEach(f => {
+        fb.innerHTML += `<div class="d-flex align-items-start gap-2 mb-2"><i class="bi bi-dot text-primary mt-1"></i><span>${f}</span></div>`;
+      });
+    } else {
+      fb.innerHTML += '<p class="text-muted small">Complete feedback not available. Check the individual question feedback for details.</p>';
+    }
+  }).catch(() => {
+    document.getElementById('interviewPanel').classList.add('d-none');
+    document.getElementById('resultsPanel').classList.remove('d-none');
+    document.getElementById('finalScore').textContent = Math.round(totalScore / Math.max(answerCount, 1) * 10);
+    document.getElementById('totalAnswers').textContent = answerCount;
+    document.getElementById('avgQScore').textContent = answerCount ? (totalScore / answerCount).toFixed(1) : '0';
+    document.getElementById('finalFeedback').innerHTML = '<h6 class="fw-700 mb-2"><i class="bi bi-list-check me-2"></i>Feedback Summary</h6><p class="text-muted small">Your responses have been recorded. AI-powered detailed feedback will be available when the service is fully operational.</p>';
+  });
+}
+
+function endInterview() { if (confirm('End interview now?')) completeInterview(); }
+</script>
+{% endblock %}

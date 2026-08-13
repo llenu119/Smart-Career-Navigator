@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Learning Roadmap - {{ career_role }} - Smart Career Navigator{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex align-items-center">
+        <div class="page-icon bg-info-subtle me-3">
+            <i class="bi bi-map text-info"></i>
+        </div>
+        <div>
+            <h2 class="fw-700 mb-0">Learning Roadmap</h2>
+            <p class="text-muted mb-0">{{ career_role }} &mdash; Estimated {{ roadmap.timeline }}</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.skill_gap', career_role=career_role) }}" class="btn btn-warning">
+            <i class="bi bi-puzzle me-1"></i>Skill Gap
+        </a>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- ═══════ ROADMAP TIMELINE ═══════ -->
+<div class="roadmap-timeline">
+    <!-- BEGINNER -->
+    <div class="roadmap-stage">
+        <div class="row g-0">
+            <div class="col-auto">
+                <div class="roadmap-dot bg-success"></div>
+                <div class="roadmap-line"></div>
+            </div>
+            <div class="col ms-3 mb-4">
+                <div class="glass-card">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-700 mb-0">
+                                <span class="badge bg-success me-2">Stage 1</span>Beginner
+                            </h5>
+                            <span class="badge bg-success-subtle text-success">
+                                <i class="bi bi-clock me-1"></i>{{ roadmap.beginner.duration }}
+                            </span>
+                        </div>
+                        <h6 class="fw-600 small text-muted mb-2">Skills to Learn:</h6>
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            {% for skill in roadmap.beginner.skills %}
+                            <span class="badge bg-success-subtle text-success border">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                        <h6 class="fw-600 small text-muted mb-2">Practice Projects:</h6>
+                        <ul class="small mb-0">
+                            {% for project in roadmap.beginner.projects %}
+                            <li>{{ project }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERMEDIATE -->
+    <div class="roadmap-stage">
+        <div class="row g-0">
+            <div class="col-auto">
+                <div class="roadmap-dot bg-warning"></div>
+                <div class="roadmap-line"></div>
+            </div>
+            <div class="col ms-3 mb-4">
+                <div class="glass-card">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-700 mb-0">
+                                <span class="badge bg-warning text-dark me-2">Stage 2</span>Intermediate
+                            </h5>
+                            <span class="badge bg-warning-subtle text-warning">
+                                <i class="bi bi-clock me-1"></i>{{ roadmap.intermediate.duration }}
+                            </span>
+                        </div>
+                        <h6 class="fw-600 small text-muted mb-2">Skills to Learn:</h6>
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            {% for skill in roadmap.intermediate.skills %}
+                            <span class="badge bg-warning-subtle text-warning border">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                        <h6 class="fw-600 small text-muted mb-2">Practice Projects:</h6>
+                        <ul class="small mb-0">
+                            {% for project in roadmap.intermediate.projects %}
+                            <li>{{ project }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADVANCED -->
+    <div class="roadmap-stage">
+        <div class="row g-0">
+            <div class="col-auto">
+                <div class="roadmap-dot bg-danger"></div>
+                <div class="roadmap-line"></div>
+            </div>
+            <div class="col ms-3 mb-4">
+                <div class="glass-card">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-700 mb-0">
+                                <span class="badge bg-danger me-2">Stage 3</span>Advanced
+                            </h5>
+                            <span class="badge bg-danger-subtle text-danger">
+                                <i class="bi bi-clock me-1"></i>{{ roadmap.advanced.duration }}
+                            </span>
+                        </div>
+                        <h6 class="fw-600 small text-muted mb-2">Skills to Learn:</h6>
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            {% for skill in roadmap.advanced.skills %}
+                            <span class="badge bg-danger-subtle text-danger border">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                        <h6 class="fw-600 small text-muted mb-2">Practice Projects:</h6>
+                        <ul class="small mb-0">
+                            {% for project in roadmap.advanced.projects %}
+                            <li>{{ project }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CERTIFICATIONS -->
+    {% if roadmap.certifications %}
+    <div class="roadmap-stage">
+        <div class="row g-0">
+            <div class="col-auto">
+                <div class="roadmap-dot bg-primary"></div>
+            </div>
+            <div class="col ms-3 mb-4">
+                <div class="card border-0 shadow-sm border-primary">
+                    <div class="card-body p-4">
+                        <h5 class="fw-700 mb-3">
+                            <span class="badge bg-primary me-2"><i class="bi bi-award"></i></span>
+                            Recommended Certifications
+                        </h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for cert in roadmap.certifications %}
+                            <span
+                                class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 py-2 px-3">
+                                <i class="bi bi-patch-check me-1"></i>{{ cert }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══════ COURSE RECOMMENDATIONS ═══════ -->
+{% if courses %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-body p-4">
+        <h5 class="fw-600 mb-3"><i class="bi bi-book me-2 text-primary"></i>Recommended Courses</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Skill</th>
+                        <th>Course</th>
+                        <th>Platform</th>
+                        <th>Level</th>
+                        <th>Price</th>
+                        <th>Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses[:15] %}
+                    <tr>
+                        <td><span class="badge bg-primary-subtle text-primary">{{ course.skill }}</span></td>
+                        <td class="fw-500 small">{{ course.course_name }}</td>
+                        <td class="small">{{ course.platform }}</td>
+                        <td>
+                            <span
+                                class="badge {% if course.difficulty == 'Beginner' %}bg-success-subtle text-success{% elif course.difficulty == 'Intermediate' %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %}">
+                                {{ course.difficulty }}
+                            </span>
+                        </td>
+                        <td>
+                            <span
+                                class="badge {% if course.free_paid == 'Free' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ course.free_paid }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ course.link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

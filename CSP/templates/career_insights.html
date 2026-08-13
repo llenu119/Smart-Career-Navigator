@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Career Insights - Smart Career Navigator{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="d-flex align-items-center mb-4">
+      <div class="page-icon bg-warning-subtle me-3">
+        <i class="bi bi-graph-up-arrow text-warning"></i>
+      </div>
+      <div>
+        <h2 class="fw-800 mb-0">Career Insights</h2>
+        <p class="text-muted mb-0">AI-powered market data, salary trends &amp; growth analysis</p>
+      </div>
+    </div>
+
+    <!-- AI Personalized Insights -->
+    {% if personalized_insights %}
+    <div class="glass-card mb-4">
+      <div class="p-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-person-circle fs-4" style="color:var(--primary)"></i>
+          <h5 class="fw-700 mb-0">Your Personalized Career Insights</h5>
+          <span class="ai-badge ms-auto"><i class="bi bi-stars"></i> AI-Generated</span>
+        </div>
+        <div class="alert border-0 mb-3" style="background:#ede9fe;border-left:4px solid #6366f1">
+          <p class="mb-0 small">{{ personalized_insights.summary }}</p>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <div class="p-3" style="background:var(--primary-subtle);border-radius:var(--radius-md);height:100%">
+              <h6 class="fw-700 mb-2"><i class="bi bi-trophy me-2 text-primary"></i>Best Roles For You</h6>
+              <ul class="small mb-0 ps-3">
+                {% for role in personalized_insights.best_roles %}
+                <li class="mb-1">{{ role }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3" style="background:var(--success-subtle);border-radius:var(--radius-md);height:100%">
+              <h6 class="fw-700 mb-2"><i class="bi bi-lightning me-2 text-success"></i>Skills to Develop</h6>
+              <ul class="small mb-0 ps-3">
+                {% for skill in personalized_insights.skills_to_develop %}
+                <li class="mb-1">{{ skill }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3" style="background:var(--warning-subtle);border-radius:var(--radius-md);height:100%">
+              <h6 class="fw-700 mb-2"><i class="bi bi-graph-up me-2 text-warning"></i>Growth Areas</h6>
+              <ul class="small mb-0 ps-3">
+                {% for area in personalized_insights.growth_areas %}
+                <li class="mb-1">{{ area }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="p-3 rounded" style="background:#f1f5f9">
+          <h6 class="fw-600 mb-1 small text-muted"><i class="bi bi-globe me-1"></i>Industry Trends</h6>
+          <p class="small mb-0">{{ personalized_insights.industry_trends }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Market Overview Stats -->
+    {% if market_data %}
+    {% set high_demand = market_data|selectattr('demand_level', 'equalto', 'High')|list|length %}
+    {% set avg_salary = market_data|map(attribute='avg_salary_min')|select('number')|list|sum // market_data|selectattr('avg_salary_min')|list|length if market_data|selectattr('avg_salary_min')|list|length > 0 else 0 %}
+    <div class="row g-3 mb-4">
+      <div class="col-md-3 col-6">
+        <div class="insight-stat"><div class="value">{{ market_data|length }}</div><div class="label">Roles Tracked</div></div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="insight-stat"><div class="value">{{ high_demand }}</div><div class="label">High Demand</div></div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="insight-stat"><div class="value">${{ avg_salary }}k</div><div class="label">Avg Salary Min</div></div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="insight-stat"><div class="value"><i class="bi bi-robot" style="color:var(--primary)"></i></div><div class="label">AI-Powered</div></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Market Data Table -->
+    <div class="glass-card mb-4">
+      <div class="p-4">
+        <h5 class="fw-700 mb-3"><i class="bi bi-bar-chart me-2 text-primary"></i>Tech Role Market Overview</h5>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Salary Range</th>
+                <th>Demand</th>
+                <th>Growth</th>
+                <th>AI Insight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in market_data %}
+              <tr>
+                <td><strong>{{ row.role_name }}</strong></td>
+                <td>
+                  {% if row.avg_salary_min and row.avg_salary_max %}
+                    ${{ row.avg_salary_min }}k - ${{ row.avg_salary_max }}k
+                  {% else %}<span class="text-muted">--</span>{% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-{{ 'success' if row.demand_level == 'High' else 'warning' if row.demand_level == 'Medium' else 'secondary' }}">
+                    {{ row.demand_level or 'Medium' }}
+                  </span>
+                </td>
+                <td>{{ row.growth_rate or '--' }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-warning" onclick="askInsight('{{ row.role_name }}')">
+                    <i class="bi bi-chat-dots me-1"></i>Ask AI
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Analyzer -->
+    <div class="glass-card mb-4">
+      <div class="p-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-search-heart fs-4" style="color:var(--primary)"></i>
+          <h5 class="fw-700 mb-0">Comprehensive Role Analysis</h5>
+          <span class="ai-badge ms-auto"><i class="bi bi-stars"></i> AI-Powered</span>
+        </div>
+        <p class="text-muted small mb-3">Select a role and get end-to-end AI analysis including skills, salary, growth, courses, and career roadmap.</p>
+        <div class="d-flex gap-2">
+          <select id="analyzeRole" class="form-select" style="max-width:300px">
+            <option value="">Choose a role...</option>
+            {% for row in market_data %}
+            <option value="{{ row.role_name }}">{{ row.role_name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-primary" onclick="analyzeRole()"><i class="bi bi-stars me-1"></i>Analyze Role</button>
+        </div>
+        <div id="analysisResult" class="mt-3 d-none"></div>
+      </div>
+    </div>
+
+    <!-- AI Insights Chat -->
+    <div class="glass-card mb-4">
+      <div class="p-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-robot fs-4" style="color:var(--primary)"></i>
+          <h5 class="fw-700 mb-0">AI Career Insights Chat</h5>
+          <span class="ai-badge ms-auto"><i class="bi bi-lightning"></i> Ask Anything</span>
+        </div>
+        <div id="insightMessages" class="mb-3 p-3" style="min-height:100px;background:var(--bg);border-radius:var(--radius-md)">
+          <div class="text-muted small py-3 text-center">
+            <i class="bi bi-info-circle me-1"></i> Ask about salary, skills demand, career progression for any tech role.
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <input type="text" id="insightRole" class="form-control" placeholder="Role (e.g. Data Scientist)" style="max-width:200px">
+          <input type="text" id="insightQuestion" class="form-control" placeholder="Your question about this role...">
+          <button class="btn btn-primary" onclick="sendInsight()"><i class="bi bi-send"></i></button>
+        </div>
+        <div class="mt-2 d-flex gap-1 flex-wrap">
+          <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="quickInsight('Data Scientist', 'What is the average salary?')">Salary</span>
+          <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="quickInsight('DevOps Engineer', 'What skills are in highest demand?')">Top Skills</span>
+          <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="quickInsight('ML Engineer', 'What is the career progression?')">Progression</span>
+          <span class="badge bg-light text-secondary" style="cursor:pointer" onclick="quickInsight('Full Stack Developer', 'What is the growth outlook for 2025?')">Growth Outlook</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function appendInsight(role, text, isUser) {
+  const box = document.getElementById('insightMessages');
+  const html = isUser ? `
+    <div class="d-flex mb-2 flex-row-reverse">
+      <div class="chat-bubble-user"><small class="fw-600 d-block opacity-75">You</small>${text}</div>
+    </div>` : `
+    <div class="d-flex mb-2">
+      <div class="chat-ai-avatar me-2"><i class="bi bi-robot text-white" style="font-size:14px"></i></div>
+      <div class="chat-bubble-ai"><small class="fw-600 d-block" style="color:var(--primary)">AI Insights</small>${text}</div>
+    </div>`;
+  box.insertAdjacentHTML('beforeend', html);
+  box.scrollTop = box.scrollHeight;
+  document.querySelector('.text-center.py-3')?.remove();
+}
+
+function askInsight(role) {
+  document.getElementById('insightRole').value = role;
+  document.getElementById('insightQuestion').focus();
+}
+
+function quickInsight(role, question) {
+  document.getElementById('insightRole').value = role;
+  document.getElementById('insightQuestion').value = question;
+  sendInsight();
+}
+
+function sendInsight() {
+  const role = document.getElementById('insightRole').value.trim();
+  const question = document.getElementById('insightQuestion').value.trim();
+  if (!role || !question) { alert('Please enter both a role and question.'); return; }
+  appendInsight(role, `<strong>${question}</strong>`, true);
+  document.getElementById('insightQuestion').value = '';
+  appendInsight(role, '<span class="spinner-ai me-1"></span> Loading...', false);
+  fetch('/career-insight', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ career_role: role, question })
+  }).then(r => r.json()).then(data => {
+    document.querySelector('#insightMessages .chat-bubble-ai:last-child')?.remove();
+    appendInsight(role, data.reply, false);
+  }).catch(() => {
+    document.querySelector('#insightMessages .chat-bubble-ai:last-child')?.remove();
+    appendInsight(role, 'Service temporarily unavailable.', false);
+  });
+}
+
+function analyzeRole() {
+  const role = document.getElementById('analyzeRole').value;
+  if (!role) { alert('Please select a career role.'); return; }
+  const resultDiv = document.getElementById('analysisResult');
+  resultDiv.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted small">AI analyzing role...</span></div>';
+  resultDiv.classList.remove('d-none');
+  fetch('/career-insight/analyze-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ career_role: role })
+  }).then(r => r.json()).then(data => {
+    if (data.error) {
+      resultDiv.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+      return;
+    }
+    resultDiv.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="p-3" style="background:var(--primary-subtle);border-radius:var(--radius-md)">
+            <h6 class="fw-700 mb-2"><i class="bi bi-cash-stack me-2 text-primary"></i>Salary Overview</h6>
+            <p class="mb-0 small">${data.salary}</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3" style="background:var(--success-subtle);border-radius:var(--radius-md)">
+            <h6 class="fw-700 mb-2"><i class="bi bi-tools me-2 text-success"></i>Key Skills</h6>
+            <p class="mb-0 small">${data.skills}</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3" style="background:var(--warning-subtle);border-radius:var(--radius-md)">
+            <h6 class="fw-700 mb-2"><i class="bi bi-graph-up me-2 text-warning"></i>Growth &amp; Demand</h6>
+            <p class="mb-0 small">${data.growth}</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3" style="background:var(--purple-subtle);border-radius:var(--radius-md)">
+            <h6 class="fw-700 mb-2"><i class="bi bi-map me-2" style="color:var(--purple)"></i>Career Roadmap</h6>
+            <p class="mb-0 small">${data.roadmap}</p>
+          </div>
+        </div>
+      </div>`;
+  }).catch(() => {
+    resultDiv.innerHTML = '<div class="alert alert-danger mb-0">Analysis temporarily unavailable. Please try again.</div>';
+  });
+}
+</script>
+{% endblock %}

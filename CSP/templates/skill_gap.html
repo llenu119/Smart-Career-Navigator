@@ -1,0 +1,366 @@
+{% extends "base.html" %} {% block title %}Skill Gap Analysis - {{ career_role
+}} - Smart Career Navigator{% endblock %} {% block content %}
+<!-- Page Header -->
+<div
+  class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"
+>
+  <div class="d-flex align-items-center">
+    <div class="page-icon bg-warning-subtle me-3">
+      <i class="bi bi-puzzle text-warning"></i>
+    </div>
+    <div>
+      <h2 class="fw-700 mb-0">Skill Gap Analysis</h2>
+      <p class="text-muted mb-0">For: <strong>{{ career_role }}</strong></p>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a
+      href="{{ url_for('dashboard.roadmap', career_role=career_role) }}"
+      class="btn btn-success"
+    >
+      <i class="bi bi-map me-1"></i>View Roadmap
+    </a>
+    <a
+      href="{{ url_for('dashboard.dashboard') }}"
+      class="btn btn-outline-secondary"
+    >
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- ═══════ MATCH PERCENTAGE ═══════ -->
+  <div class="col-md-4">
+    <div class="glass-card text-center">
+      <div class="card-body p-4">
+        <h6 class="fw-600 text-muted">Skill Match</h6>
+        <div class="resume-score-circle mx-auto my-3">
+          <svg viewBox="0 0 120 120">
+            <circle
+              cx="60"
+              cy="60"
+              r="52"
+              fill="none"
+              stroke="#e9ecef"
+              stroke-width="10"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              r="52"
+              fill="none"
+              stroke="{% if analysis.match_percentage >= 70 %}#198754{% elif analysis.match_percentage >= 40 %}#ffc107{% else %}#dc3545{% endif %}"
+              stroke-width="10"
+              stroke-dasharray="{{ analysis.match_percentage * 3.27 }} 327"
+              stroke-linecap="round"
+              transform="rotate(-90 60 60)"
+            />
+            <text x="60" y="65" text-anchor="middle" class="score-text">
+              {{ "%.0f"|format(analysis.match_percentage) }}%
+            </text>
+          </svg>
+        </div>
+        <p class="small text-muted">
+          {{ analysis.existing_skills|length }} of {{ analysis.total_required }}
+          required skills
+        </p>
+      </div>
+    </div>
+
+    <!-- Priority Skills -->
+    {% if analysis.priority_skills %}
+    <div class="glass-card mt-3">
+      <div class="card-body p-4">
+        <h6 class="fw-600">
+          <i class="bi bi-lightning me-2 text-warning"></i>Learn First
+        </h6>
+        <ol class="small mb-0 mt-2">
+          {% for skill in analysis.priority_skills %}
+          <li class="mb-1">{{ skill }}</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ═══════ SKILL DETAILS ═══════ -->
+  <div class="col-md-8">
+    <!-- Existing Skills -->
+    <div class="glass-card mb-3">
+      <div class="card-body p-4">
+        <h6 class="fw-600">
+          <i class="bi bi-check-circle me-2 text-success"></i>Your Matching
+          Skills ({{ analysis.existing_skills|length }})
+        </h6>
+        <div class="d-flex flex-wrap gap-1 mt-2">
+          {% for skill in analysis.existing_skills %}
+          <span class="badge bg-success-subtle text-success">{{ skill }}</span>
+          {% else %}
+          <span class="text-muted small">No matching skills found</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Missing Skills by Level -->
+    <div class="glass-card mb-3">
+      <div class="card-body p-4">
+        <h6 class="fw-600">
+          <i class="bi bi-exclamation-circle me-2 text-danger"></i>Missing
+          Skills ({{ analysis.missing_skills|length }})
+        </h6>
+
+        {% if analysis.missing_categorized.beginner %}
+        <div class="mt-3">
+          <span class="badge bg-success mb-2">Beginner Level</span>
+          <div class="d-flex flex-wrap gap-1">
+            {% for skill in analysis.missing_categorized.beginner %}
+            <span
+              class="badge bg-success-subtle text-success border border-success-subtle"
+              >{{ skill }}</span
+            >
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %} {% if analysis.missing_categorized.intermediate %}
+        <div class="mt-3">
+          <span class="badge bg-warning text-dark mb-2"
+            >Intermediate Level</span
+          >
+          <div class="d-flex flex-wrap gap-1">
+            {% for skill in analysis.missing_categorized.intermediate %}
+            <span
+              class="badge bg-warning-subtle text-warning border border-warning-subtle"
+              >{{ skill }}</span
+            >
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %} {% if analysis.missing_categorized.advanced %}
+        <div class="mt-3">
+          <span class="badge bg-danger mb-2">Advanced Level</span>
+          <div class="d-flex flex-wrap gap-1">
+            {% for skill in analysis.missing_categorized.advanced %}
+            <span
+              class="badge bg-danger-subtle text-danger border border-danger-subtle"
+              >{{ skill }}</span
+            >
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Extra Skills -->
+    {% if analysis.extra_skills %}
+    <div class="glass-card mb-3">
+      <div class="card-body p-4">
+        <h6 class="fw-600">
+          <i class="bi bi-star me-2 text-info"></i>Your Additional Skills
+        </h6>
+        <div class="d-flex flex-wrap gap-1 mt-2">
+          {% for skill in analysis.extra_skills %}
+          <span class="badge bg-info-subtle text-info">{{ skill }}</span>
+          {% endfor %}
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+          These skills are beyond the core requirements — great to have!
+        </p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ═══════ COURSE RECOMMENDATIONS ═══════ -->
+{% if courses %}
+<div class="glass-card mt-4">
+  <div class="card-body p-4">
+    <h5 class="fw-600 mb-3">
+      <i class="bi bi-book me-2 text-primary"></i>Recommended Courses for
+      Missing Skills
+    </h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Skill</th>
+            <th>Course</th>
+            <th>Platform</th>
+            <th>Level</th>
+            <th>Price</th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for course in courses %}
+          <tr>
+            <td>
+              <span class="badge bg-primary-subtle text-primary"
+                >{{ course.skill }}</span
+              >
+            </td>
+            <td class="fw-500 small">{{ course.course_name }}</td>
+            <td class="small">{{ course.platform }}</td>
+            <td>
+              <span
+                class="badge {% if course.difficulty == 'Beginner' %}bg-success-subtle text-success{% elif course.difficulty == 'Intermediate' %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %}"
+              >
+                {{ course.difficulty }}
+              </span>
+            </td>
+            <td>
+              <span
+                class="badge {% if course.free_paid == 'Free' %}bg-success{% else %}bg-secondary{% endif %}"
+              >
+                {{ course.free_paid }}
+              </span>
+            </td>
+            <td>
+              <a
+                href="{{ course.link }}"
+                target="_blank"
+                class="btn btn-sm btn-outline-primary"
+              >
+                <i class="bi bi-box-arrow-up-right"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══════ AI SKILL EXPLANATION (Groq) ═══════ -->
+<div class="glass-card mt-4 mb-4">
+  <div
+    class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center"
+  >
+    <h5 class="fw-600 mb-0">
+      <i class="bi bi-lightbulb me-2" style="color: #6366f1"></i>
+      AI Skill Explanation
+      <span
+        class="badge ms-2 px-2 py-1"
+        style="
+          background: #ede9fe;
+          color: #6366f1;
+          font-size: 0.65rem;
+          font-weight: 600;
+        "
+        >Groq AI</span
+      >
+    </h5>
+    <button
+      id="btnExplain"
+      class="btn btn-sm btn-primary"
+      onclick="loadAIExplanation()"
+    >
+      <i class="bi bi-stars me-1"></i>Explain My Skill Gaps
+    </button>
+  </div>
+  <div class="card-body px-4 pb-4">
+    <div id="explainLoading" class="text-center py-4 d-none">
+      <div class="spinner-border text-primary mb-2"></div>
+      <p class="text-muted small mb-0">
+        Groq AI is analysing your skill gaps...
+      </p>
+    </div>
+    <div id="explainOutput" class="d-none">
+      <div
+        class="alert border-0 mb-4"
+        style="
+          background: #ede9fe;
+          border-left: 4px solid #6366f1 !important;
+          border-left-style: solid !important;
+        "
+      >
+        <p id="explainSummary" class="mb-0 small"></p>
+      </div>
+      <div class="row g-3 mb-3" id="explainCards"></div>
+      <div id="quickWinsSection" class="d-none">
+        <h6 class="fw-600 mb-2">
+          <i class="bi bi-lightning me-2 text-warning"></i>Quick Wins — Learn
+          These First
+        </h6>
+        <div id="quickWinsList" class="d-flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+    <div id="explainError" class="alert alert-warning d-none"></div>
+    <p class="text-muted small mb-0" id="explainHint">
+      Click <strong>Explain My Skill Gaps</strong> to get personalised AI
+      insights on why each missing skill matters and how to learn it.
+    </p>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  const CAREER_ROLE = {{ career_role | tojson }};
+
+  async function loadAIExplanation() {
+      const btn = document.getElementById('btnExplain');
+      document.getElementById('explainHint').classList.add('d-none');
+      document.getElementById('explainOutput').classList.add('d-none');
+      document.getElementById('explainError').classList.add('d-none');
+      document.getElementById('explainLoading').classList.remove('d-none');
+      btn.disabled = true;
+
+      try {
+          const res  = await fetch(`/ai-skill-explanation/${encodeURIComponent(CAREER_ROLE)}`);
+          const data = await res.json();
+          document.getElementById('explainLoading').classList.add('d-none');
+
+          if (data.error) {
+              document.getElementById('explainError').textContent = data.error;
+              document.getElementById('explainError').classList.remove('d-none');
+              return;
+          }
+
+          // Summary
+          document.getElementById('explainSummary').textContent = data.summary || '';
+
+          // Skill cards
+          const cardsContainer = document.getElementById('explainCards');
+          cardsContainer.innerHTML = '';
+          (data.skill_explanations || []).forEach(item => {
+              cardsContainer.insertAdjacentHTML('beforeend', `
+              <div class="col-md-6">
+                  <div class="card border-0 h-100" style="background:#f8fafc">
+                      <div class="card-body p-3">
+                          <h6 class="fw-600 mb-1" style="color:#6366f1">
+                              <i class="bi bi-code-square me-1"></i>${item.skill}
+                          </h6>
+                          <p class="small text-muted mb-1"><strong>Why it matters:</strong> ${item.why_important}</p>
+                          <p class="small text-muted mb-0"><strong>How to learn:</strong> ${item.how_to_learn}</p>
+                      </div>
+                  </div>
+              </div>`);
+          });
+
+          // Quick wins
+          const qwList = document.getElementById('quickWinsList');
+          qwList.innerHTML = '';
+          if (data.quick_wins && data.quick_wins.length) {
+              data.quick_wins.forEach(w => {
+                  qwList.insertAdjacentHTML('beforeend',
+                      `<span class="badge px-3 py-2" style="background:#d1fae5;color:#065f46;font-size:0.8rem">${w}</span>`);
+              });
+              document.getElementById('quickWinsSection').classList.remove('d-none');
+          }
+
+          document.getElementById('explainOutput').classList.remove('d-none');
+      } catch (e) {
+          document.getElementById('explainLoading').classList.add('d-none');
+          document.getElementById('explainError').textContent = 'Request failed. Check your connection and API key.';
+          document.getElementById('explainError').classList.remove('d-none');
+      } finally {
+          btn.disabled = false;
+      }
+  }
+</script>
+{% endblock %}

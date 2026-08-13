@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Login - Smart Career Navigator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="auth-card">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <div class="auth-icon mb-3">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <h3 class="fw-700">Welcome Back</h3>
+                <p class="text-muted small">Log in to your Career Navigator account</p>
+            </div>
+
+            <!-- Login Form -->
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="mb-3">
+                    <label for="username" class="form-label fw-500">
+                        <i class="bi bi-person me-1"></i>Username
+                    </label>
+                    <input type="text" class="form-control form-control-lg" id="username" name="username"
+                        placeholder="Enter your username" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-500">
+                        <i class="bi bi-lock me-1"></i>Password
+                    </label>
+                    <div class="input-group">
+                        <input type="password" class="form-control form-control-lg" id="password" name="password"
+                            placeholder="Enter your password" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
+                            <i class="bi bi-eye" id="password-toggle-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label small" for="remember">Remember me</label>
+                    </div>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="small fw-600">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                </button>
+            </form>
+
+            <!-- Social Login -->
+            <div class="text-center mt-4">
+                <p class="text-muted small mb-3">Or continue with</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{{ url_for('auth.google_login') }}" class="btn btn-outline-danger px-4">
+                        <i class="bi bi-google me-2"></i>Google
+                    </a>
+                    <a href="{{ url_for('auth.github_login') }}" class="btn btn-outline-dark px-4">
+                        <i class="bi bi-github me-2"></i>GitHub
+                    </a>
+                </div>
+            </div>
+
+            <!-- Register Link -->
+            <div class="text-center mt-4">
+                <p class="text-muted mb-1">Don't have an account?</p>
+                <a href="{{ url_for('auth.register') }}" class="fw-600">Create Account <i
+                        class="bi bi-arrow-right"></i></a>
+            </div>
+
+            <!-- Admin Hint -->
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Admin: <code>admin</code> / <code>admin123</code>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

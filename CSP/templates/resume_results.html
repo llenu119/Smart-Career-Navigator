@@ -1,0 +1,350 @@
+{% extends "base.html" %} {% block title %}Resume Analysis Results - Smart
+Career Navigator{% endblock %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <!-- Page Header -->
+    <div
+      class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"
+    >
+      <div class="d-flex align-items-center">
+        <div class="page-icon bg-success-subtle me-3">
+          <i class="bi bi-file-earmark-check text-success"></i>
+        </div>
+        <div>
+          <h2 class="fw-700 mb-0">Resume Analysis</h2>
+          <p class="text-muted mb-0">{{ resume.filename }}</p>
+        </div>
+      </div>
+      <a href="{{ url_for('resume.upload') }}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-clockwise me-1"></i>Upload New Resume
+      </a>
+    </div>
+
+    <div class="row g-4">
+      <!-- ═══════ SCORE CARD ═══════ -->
+      <div class="col-md-4">
+        <div class="glass-card text-center h-100">
+          <div class="card-body p-4">
+            <h6 class="fw-600 text-muted">Resume Quality Score</h6>
+            <div class="resume-score-circle mx-auto my-3">
+              <svg viewBox="0 0 120 120">
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="#e9ecef"
+                  stroke-width="10"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="{% if resume.resume_score >= 70 %}#198754{% elif resume.resume_score >= 40 %}#ffc107{% else %}#dc3545{% endif %}"
+                  stroke-width="10"
+                  stroke-dasharray="{{ resume.resume_score * 3.27 }} 327"
+                  stroke-linecap="round"
+                  transform="rotate(-90 60 60)"
+                />
+                <text x="60" y="65" text-anchor="middle" class="score-text">
+                  {{ "%.0f"|format(resume.resume_score) }}
+                </text>
+              </svg>
+            </div>
+            <span
+              class="badge {% if resume.resume_score >= 70 %}bg-success{% elif resume.resume_score >= 40 %}bg-warning{% else %}bg-danger{% endif %} fs-6"
+            >
+              {{ resume.analysis.overall_rating if resume.analysis else 'N/A' }}
+            </span>
+
+            <!-- Score Breakdown -->
+            {% if resume.analysis and resume.analysis.breakdown %}
+            <div class="mt-4 text-start">
+              <h6 class="fw-600 small mb-3">Score Breakdown</h6>
+              {% set max_scores = {'skills': 25, 'education': 15, 'projects':
+              20, 'experience': 20, 'certifications': 10, 'contact': 5, 'depth':
+              5} %} {% for section, points in resume.analysis.breakdown.items()
+              %}
+              <div class="mb-2">
+                <div class="d-flex justify-content-between small">
+                  <span>{{ section|title }}</span>
+                  <span>{{ points }}/{{ max_scores.get(section, 1) }}</span>
+                </div>
+                <div class="progress" style="height: 4px">
+                  <div
+                    class="progress-bar"
+                    style="width: {{ (points / max_scores.get(section, 1) * 100)|int }}%"
+                  ></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ EXTRACTED DATA ═══════ -->
+      <div class="col-md-8">
+        <!-- Skills -->
+        <div class="glass-card mb-3">
+          <div class="card-body p-4">
+            <h6 class="fw-600">
+              <i class="bi bi-code-slash me-2 text-primary"></i>Extracted Skills
+              ({{ resume.skills_list|length }})
+            </h6>
+            <div class="d-flex flex-wrap gap-1 mt-2">
+              {% for skill in resume.skills_list if skill.strip() %}
+              <span class="badge bg-primary-subtle text-primary"
+                >{{ skill.strip() }}</span
+              >
+              {% else %}
+              <p class="text-muted small mb-0">No skills detected</p>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Education -->
+        <div class="glass-card mb-3">
+          <div class="card-body p-4">
+            <h6 class="fw-600">
+              <i class="bi bi-mortarboard me-2 text-success"></i>Education
+            </h6>
+            <ul class="list-unstyled mb-0 mt-2">
+              {% for edu in resume.education_list if edu %}
+              <li class="small mb-1">
+                <i class="bi bi-check text-success me-1"></i>{{ edu }}
+              </li>
+              {% else %}
+              <li class="text-muted small">No education details detected</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Projects -->
+        <div class="glass-card mb-3">
+          <div class="card-body p-4">
+            <h6 class="fw-600">
+              <i class="bi bi-kanban me-2 text-warning"></i>Projects
+            </h6>
+            <ul class="list-unstyled mb-0 mt-2">
+              {% for proj in resume.projects_list if proj %}
+              <li class="small mb-1">
+                <i class="bi bi-check text-warning me-1"></i>{{ proj }}
+              </li>
+              {% else %}
+              <li class="text-muted small">No projects detected</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="glass-card mb-3">
+          <div class="card-body p-4">
+            <h6 class="fw-600">
+              <i class="bi bi-briefcase me-2 text-info"></i>Experience
+            </h6>
+            <ul class="list-unstyled mb-0 mt-2">
+              {% for exp in resume.experience_list if exp %}
+              <li class="small mb-1">
+                <i class="bi bi-check text-info me-1"></i>{{ exp }}
+              </li>
+              {% else %}
+              <li class="text-muted small">No experience details detected</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Certifications -->
+        <div class="glass-card mb-3">
+          <div class="card-body p-4">
+            <h6 class="fw-600">
+              <i class="bi bi-award me-2 text-danger"></i>Certifications
+            </h6>
+            <ul class="list-unstyled mb-0 mt-2">
+              {% for cert in resume.certifications_list if cert %}
+              <li class="small mb-1">
+                <i class="bi bi-check text-danger me-1"></i>{{ cert }}
+              </li>
+              {% else %}
+              <li class="text-muted small">No certifications detected</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUGGESTIONS ═══════ -->
+    {% if resume.analysis and resume.analysis.suggestions %}
+    <div class="glass-card mt-4">
+      <div class="card-body p-4">
+        <h5 class="fw-600 mb-3">
+          <i class="bi bi-lightbulb me-2 text-warning"></i>Improvement
+          Suggestions
+        </h5>
+        {% for suggestion in resume.analysis.suggestions %}
+        <div
+          class="alert {% if suggestion.type == 'critical' %}alert-danger {% elif suggestion.type == 'improvement' %}alert-warning {% elif suggestion.type == 'good' %}alert-info {% else %}alert-success{% endif %} d-flex align-items-start py-2"
+          role="alert"
+        >
+          <i
+            class="bi {% if suggestion.type == 'critical' %}bi-exclamation-triangle{% elif suggestion.type == 'improvement' %}bi-arrow-up-circle{% elif suggestion.type == 'good' %}bi-hand-thumbs-up{% else %}bi-star{% endif %} me-2 mt-1"
+          ></i>
+          <span class="small">{{ suggestion.message }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Missing Sections -->
+    {% if resume.analysis and resume.analysis.missing_sections %}
+    <div class="glass-card mt-3">
+      <div class="card-body p-4">
+        <h6 class="fw-600">
+          <i class="bi bi-exclamation-circle me-2 text-danger"></i>Missing
+          Sections
+        </h6>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          {% for section in resume.analysis.missing_sections %}
+          <span class="badge bg-danger-subtle text-danger">{{ section }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══════ AI RESUME FEEDBACK (Groq) ═══════ -->
+    <div class="glass-card mt-3">
+      <div
+        class="card-header bg-transparent border-0 pt-3 px-4 d-flex justify-content-between align-items-center"
+      >
+        <h6 class="fw-600 mb-0">
+          <i class="bi bi-stars me-2" style="color: #6366f1"></i>
+          AI Resume Feedback
+          <span
+            class="badge ms-1 px-2 py-1"
+            style="
+              background: #ede9fe;
+              color: #6366f1;
+              font-size: 0.6rem;
+              font-weight: 600;
+            "
+            >Groq AI</span
+          >
+        </h6>
+        <button
+          id="btnAIFeedback"
+          class="btn btn-sm btn-primary"
+          onclick="loadAIFeedback()"
+        >
+          <i class="bi bi-robot me-1"></i>Get AI Feedback
+        </button>
+      </div>
+      <div class="card-body p-4">
+        <div id="aiFeedbackLoading" class="text-center py-3 d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+          <span class="text-muted small"
+            >Groq AI is reading your resume...</span
+          >
+        </div>
+        <div id="aiFeedbackOutput" class="d-none">
+          <p
+            id="aiOverall"
+            class="small mb-3"
+            style="border-left: 3px solid #6366f1; padding-left: 10px"
+          ></p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <h6 class="fw-600 small text-success">
+                <i class="bi bi-check-circle me-1"></i>Strengths
+              </h6>
+              <ul id="aiStrengths" class="small ps-3 mb-0"></ul>
+            </div>
+            <div class="col-md-4">
+              <h6 class="fw-600 small text-warning">
+                <i class="bi bi-arrow-up-circle me-1"></i>Improvements
+              </h6>
+              <ul id="aiImprovements" class="small ps-3 mb-0"></ul>
+            </div>
+            <div class="col-md-4">
+              <h6 class="fw-600 small text-info">
+                <i class="bi bi-robot me-1"></i>ATS Tips
+              </h6>
+              <ul id="aiATS" class="small ps-3 mb-0"></ul>
+            </div>
+          </div>
+        </div>
+        <div
+          id="aiFeedbackError"
+          class="alert alert-warning d-none small"
+        ></div>
+        <p id="aiFeedbackHint" class="text-muted small mb-0">
+          Click <strong>Get AI Feedback</strong> to receive personalised,
+          AI-written suggestions to strengthen your resume.
+        </p>
+      </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+      <a
+        href="{{ url_for('dashboard.dashboard') }}"
+        class="btn btn-outline-secondary"
+      >
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  async function loadAIFeedback() {
+    const btn = document.getElementById("btnAIFeedback");
+    document.getElementById("aiFeedbackHint").classList.add("d-none");
+    document.getElementById("aiFeedbackOutput").classList.add("d-none");
+    document.getElementById("aiFeedbackError").classList.add("d-none");
+    document.getElementById("aiFeedbackLoading").classList.remove("d-none");
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/resume/ai-feedback");
+      const data = await res.json();
+      document.getElementById("aiFeedbackLoading").classList.add("d-none");
+
+      if (data.error && !data.overall) {
+        document.getElementById("aiFeedbackError").textContent = data.error;
+        document.getElementById("aiFeedbackError").classList.remove("d-none");
+        return;
+      }
+
+      document.getElementById("aiOverall").textContent = data.overall || "";
+
+      const fillList = (id, items) => {
+        const el = document.getElementById(id);
+        el.innerHTML = (items || [])
+          .map((i) => `<li class="mb-1">${i}</li>`)
+          .join("");
+      };
+      fillList("aiStrengths", data.strengths);
+      fillList("aiImprovements", data.improvements);
+      fillList("aiATS", data.ats_tips);
+
+      document.getElementById("aiFeedbackOutput").classList.remove("d-none");
+    } catch (e) {
+      document.getElementById("aiFeedbackLoading").classList.add("d-none");
+      document.getElementById("aiFeedbackError").textContent =
+        "Request failed. Check your connection and API key.";
+      document.getElementById("aiFeedbackError").classList.remove("d-none");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

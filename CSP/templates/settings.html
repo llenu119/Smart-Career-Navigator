@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Account Settings - Smart Career Navigator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Page Header -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="page-icon bg-primary-subtle me-3">
+                <i class="bi bi-gear text-primary fs-3"></i>
+            </div>
+            <div>
+                <h2 class="fw-700 mb-0">Account Settings</h2>
+                <p class="text-muted mb-0">Manage your password, linked social accounts, and view AI usage activity.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Side: Change Password and OAuth -->
+            <div class="col-md-6">
+                <!-- Change Password Card -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-600 mb-3"><i class="bi bi-shield-lock me-2"></i>Change Password</h5>
+                        <form method="POST" action="{{ url_for('dashboard.settings') }}">
+                            <input type="hidden" name="action" value="change_password">
+                            
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label small fw-500">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label small fw-500">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" placeholder="Min 8 characters, strong password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label small fw-500">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-check-circle me-1"></i>Update Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- OAuth Connections Card -->
+                <div class="glass-card">
+                    <div class="card-body p-4">
+                        <h5 class="fw-600 mb-3"><i class="bi bi-share me-2"></i>Connected Social Accounts</h5>
+                        <p class="text-muted small mb-4">Manage your linked social login accounts. Link accounts from the login page.</p>
+
+                        <!-- Google Status -->
+                        <div class="d-flex align-items-center justify-content-between py-3 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-google text-danger fs-4 me-3"></i>
+                                <div>
+                                    <h6 class="mb-0 fw-600">Google Account</h6>
+                                    {% if user_meta.google_id %}
+                                    <small class="text-success"><i class="bi bi-link-45deg me-1"></i>Connected (ID: {{ user_meta.google_id[:10] }}...)</small>
+                                    {% else %}
+                                    <small class="text-muted">Not connected</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                {% if user_meta.google_id %}
+                                <form method="POST" action="{{ url_for('dashboard.settings') }}">
+                                    <input type="hidden" name="action" value="unlink_oauth">
+                                    <input type="hidden" name="provider" value="google">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Unlink</button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- GitHub Status -->
+                        <div class="d-flex align-items-center justify-content-between py-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-github text-body fs-4 me-3"></i>
+                                <div>
+                                    <h6 class="mb-0 fw-600">GitHub Account</h6>
+                                    {% if user_meta.github_id %}
+                                    <small class="text-success"><i class="bi bi-link-45deg me-1"></i>Connected (ID: {{ user_meta.github_id[:10] }}...)</small>
+                                    {% else %}
+                                    <small class="text-muted">Not connected</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                {% if user_meta.github_id %}
+                                <form method="POST" action="{{ url_for('dashboard.settings') }}">
+                                    <input type="hidden" name="action" value="unlink_oauth">
+                                    <input type="hidden" name="provider" value="github">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Unlink</button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: AI usage history -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h5 class="fw-600 mb-3"><i class="bi bi-clock-history me-2"></i>AI Activity History</h5>
+                        <p class="text-muted small mb-3">View the token consumption details for your recent AI assistant requests.</p>
+                        
+                        <div class="flex-grow-1 overflow-auto" style="max-height: 480px;">
+                            {% if ai_history %}
+                            <div class="list-group list-group-flush">
+                                {% for item in ai_history %}
+                                <div class="list-group-item px-0 py-3 border-bottom-xs">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 fw-600 text-capitalize">
+                                            {% if item.feature == 'resume_feedback' %}
+                                            <i class="bi bi-file-earmark-text text-primary me-1"></i>Resume Feedback
+                                            {% elif item.feature == 'skill_explanation' %}
+                                            <i class="bi bi-lightbulb text-warning me-1"></i>Skill Gap Help
+                                            {% elif item.feature == 'chatbot' %}
+                                            <i class="bi bi-chat-dots text-info me-1"></i>Career Advisor Chat
+                                            {% elif item.feature == 'cover_letter' %}
+                                            <i class="bi bi-envelope-paper text-success me-1"></i>Cover Letter
+                                            {% else %}
+                                            <i class="bi bi-cpu text-secondary me-1"></i>{{ item.feature }}
+                                            {% endif %}
+                                        </h6>
+                                        {% if item.status == 'success' %}
+                                        <span class="badge bg-success-subtle text-success">Success</span>
+                                        {% else %}
+                                        <span class="badge bg-danger-subtle text-danger" title="{{ item.error_message }}">Failed</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-2 d-flex justify-content-between text-muted small">
+                                        <span>Total Tokens: <strong>{{ item.total_tokens }}</strong></span>
+                                        <span class="text-secondary small">{{ item.timestamp }}</span>
+                                    </div>
+                                    <div class="mt-1 d-flex gap-3 text-muted" style="font-size: 0.75rem;">
+                                        <span>Prompt: {{ item.prompt_tokens }}</span>
+                                        <span>Completion: {{ item.completion_tokens }}</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-chat-left-dots display-4 text-muted"></i>
+                                <p class="text-muted mt-3 mb-0">No AI requests logged yet.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
