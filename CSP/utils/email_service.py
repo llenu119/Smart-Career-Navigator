@@ -1,3 +1,4 @@
+
 """
 Email Service
 =============
@@ -15,21 +16,17 @@ import resend
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 
-if RESEND_API_KEY:
-    resend.api_key = RESEND_API_KEY
-
-
-# ============================================================
-# EMAIL SENDER
-# ============================================================
-
-# For initial testing, Resend provides onboarding@resend.dev.
-# Once you verify your own domain in Resend, replace this with
-# your verified sender address.
 RESEND_SENDER = os.environ.get(
     "RESEND_SENDER",
     "onboarding@resend.dev"
 ).strip()
+
+# Configure Resend only when an API key is available
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+
+print("RESEND API KEY FOUND:", bool(RESEND_API_KEY))
+print("RESEND SENDER:", RESEND_SENDER)
 
 
 # ============================================================
@@ -37,6 +34,14 @@ RESEND_SENDER = os.environ.get(
 # ============================================================
 
 def send_otp_email(to_email, otp, username=None):
+    """
+    Send a 6-digit verification OTP.
+
+    Returns:
+        (True, "sent")    -> email sent successfully
+        (True, "sandbox") -> API key is not configured
+        (False, error)    -> email sending failed
+    """
 
     subject = "Verify Your Account - Smart Career Navigator"
 
@@ -70,6 +75,14 @@ The Smart Career Navigator Team
 # ============================================================
 
 def send_password_reset_email(to_email, otp, username=None):
+    """
+    Send a 6-digit password reset OTP.
+
+    Returns:
+        (True, "sent")    -> email sent successfully
+        (True, "sandbox") -> API key is not configured
+        (False, error)    -> email sending failed
+    """
 
     subject = "Reset Your Password - Smart Career Navigator"
 
@@ -105,9 +118,18 @@ The Smart Career Navigator Team
 # ============================================================
 
 def _send_email(to_email, subject, body, otp, email_type):
+    """
+    Send an email using Resend.
+
+    If RESEND_API_KEY is missing:
+        Developer Sandbox Mode is used.
+
+    If Resend fails:
+        The error is printed to the Render logs.
+    """
 
     # --------------------------------------------------------
-    # Check API key
+    # Check Resend API key
     # --------------------------------------------------------
 
     if not RESEND_API_KEY:
@@ -122,8 +144,9 @@ def _send_email(to_email, subject, body, otp, email_type):
 
         return True, "sandbox"
 
+
     # --------------------------------------------------------
-    # Send using Resend
+    # Send email through Resend
     # --------------------------------------------------------
 
     try:
@@ -135,28 +158,28 @@ def _send_email(to_email, subject, body, otp, email_type):
             "html": body.replace("\n", "<br>")
         }
 
-        email = resend.Emails.send(params)
+        response = resend.Emails.send(params)
 
         print(
-            f"Email sent successfully to {to_email}"
+            f"SUCCESS: {email_type} email sent to {to_email}"
         )
 
-        print(f"Resend response: {email}")
+        print(f"Resend response: {response}")
 
         return True, "sent"
+
+
+    # --------------------------------------------------------
+    # Handle Resend errors
+    # --------------------------------------------------------
 
     except Exception as e:
 
         print(
-            f"Failed to send email through Resend: {e}"
+            f"ERROR: Failed to send {email_type} email"
         )
 
-        # Fallback for development/testing
-        print("\n" + "=" * 50)
-        print("DEVELOPER SANDBOX FALLBACK")
-        print(f"To:      {to_email}")
-        print(f"Type:    {email_type}")
-        print(f"OTP:     {otp}")
-        print("=" * 50 + "\n")
+        print(f"Resend error: {e}")
 
         return False, str(e)
+
