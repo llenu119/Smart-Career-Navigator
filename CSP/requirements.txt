@@ -163,3 +163,4 @@ Werkzeug==3.0.1
 win32_setctime==1.2.0
 WTForms==3.2.2
 xlsxwriter==3.2.9
+gunicorn==21.2.0
