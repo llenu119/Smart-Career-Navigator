@@ -49,4 +49,4 @@ PyYAML==6.0.3
 tenacity==9.1.4
 
 gunicorn==21.2.0
-resend==1.0.0
+resend==2.36.0
