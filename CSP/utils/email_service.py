@@ -1,29 +1,34 @@
 """
 Email Service
 =============
-Handles sending OTP codes for email verification and password resets.
-
-If SMTP settings are not configured in .env, it runs in Developer
-Sandbox Mode and prints the OTP in the console.
+Handles sending OTP codes for email verification
+and password resets using Resend.
 """
 
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 
 # ============================================================
-# SMTP CONFIGURATION
+# RESEND CONFIGURATION
 # ============================================================
 
-SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
-SMTP_SENDER = os.environ.get(
-    "SMTP_SENDER",
-    SMTP_USERNAME
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+
+
+# ============================================================
+# EMAIL SENDER
+# ============================================================
+
+# For initial testing, Resend provides onboarding@resend.dev.
+# Once you verify your own domain in Resend, replace this with
+# your verified sender address.
+RESEND_SENDER = os.environ.get(
+    "RESEND_SENDER",
+    "onboarding@resend.dev"
 ).strip()
 
 
@@ -32,14 +37,6 @@ SMTP_SENDER = os.environ.get(
 # ============================================================
 
 def send_otp_email(to_email, otp, username=None):
-    """
-    Send a 6-digit verification OTP.
-
-    Returns:
-        (True, "sent")      -> email sent successfully
-        (True, "sandbox")   -> SMTP not configured
-        (False, error)      -> email sending failed
-    """
 
     subject = "Verify Your Account - Smart Career Navigator"
 
@@ -73,14 +70,6 @@ The Smart Career Navigator Team
 # ============================================================
 
 def send_password_reset_email(to_email, otp, username=None):
-    """
-    Send a 6-digit password reset OTP.
-
-    Returns:
-        (True, "sent")      -> email sent successfully
-        (True, "sandbox")   -> SMTP not configured
-        (False, error)      -> email sending failed
-    """
 
     subject = "Reset Your Password - Smart Career Navigator"
 
@@ -116,102 +105,58 @@ The Smart Career Navigator Team
 # ============================================================
 
 def _send_email(to_email, subject, body, otp, email_type):
-    """
-    Internal helper used to send emails through SMTP.
-
-    If SMTP credentials are missing:
-        Developer Sandbox Mode is used.
-
-    If SMTP sending fails:
-        The error is printed and the OTP is shown in the
-        Render logs as a fallback for development/testing.
-    """
 
     # --------------------------------------------------------
-    # Check SMTP configuration
+    # Check API key
     # --------------------------------------------------------
 
-    if not SMTP_USERNAME or not SMTP_PASSWORD:
+    if not RESEND_API_KEY:
 
-        print("\n" + "═" * 50)
-        print(" 🔍 DEVELOPER SANDBOX EMAIL")
-        print(f"  To:      {to_email}")
-        print(f"  Type:    {email_type}")
-        print(f"  Subject: {subject}")
-        print(f"  OTP:     {otp}")
-        print("═" * 50 + "\n")
+        print("\n" + "=" * 50)
+        print("DEVELOPER SANDBOX EMAIL")
+        print(f"To:      {to_email}")
+        print(f"Type:    {email_type}")
+        print(f"Subject: {subject}")
+        print(f"OTP:     {otp}")
+        print("=" * 50 + "\n")
 
         return True, "sandbox"
 
     # --------------------------------------------------------
-    # Send email using SMTP
+    # Send using Resend
     # --------------------------------------------------------
 
     try:
 
-        # Create email message
-        msg = MIMEMultipart()
+        params = {
+            "from": RESEND_SENDER,
+            "to": [to_email],
+            "subject": subject,
+            "html": body.replace("\n", "<br>")
+        }
 
-        msg["From"] = SMTP_SENDER
-        msg["To"] = to_email
-        msg["Subject"] = subject
-
-        msg.attach(
-            MIMEText(body, "plain")
-        )
-
-        # ----------------------------------------------------
-        # Connect to SMTP server
-        #
-        # timeout=15 prevents the Render worker from waiting
-        # indefinitely if the SMTP server does not respond.
-        # ----------------------------------------------------
-
-        with smtplib.SMTP(
-            SMTP_SERVER,
-            SMTP_PORT,
-            timeout=15
-        ) as server:
-
-            # Secure the connection
-            server.starttls()
-
-            # Login
-            server.login(
-                SMTP_USERNAME,
-                SMTP_PASSWORD
-            )
-
-            # Send email
-            server.sendmail(
-                SMTP_SENDER,
-                to_email,
-                msg.as_string()
-            )
+        email = resend.Emails.send(params)
 
         print(
-            f"✅ {email_type} email sent successfully "
-            f"to {to_email}"
+            f"Email sent successfully to {to_email}"
         )
 
-        return True, "sent"
+        print(f"Resend response: {email}")
 
-    # --------------------------------------------------------
-    # Handle SMTP errors
-    # --------------------------------------------------------
+        return True, "sent"
 
     except Exception as e:
 
         print(
-            f"❌ Failed to send SMTP email: {e}"
+            f"Failed to send email through Resend: {e}"
         )
 
-        # Developer fallback
-        print("\n" + "═" * 50)
-        print(" 🔍 DEVELOPER SANDBOX FALLBACK")
-        print(f"  To:      {to_email}")
-        print(f"  Type:    {email_type}")
-        print(f"  OTP:     {otp}")
-        print("═" * 50 + "\n")
+        # Fallback for development/testing
+        print("\n" + "=" * 50)
+        print("DEVELOPER SANDBOX FALLBACK")
+        print(f"To:      {to_email}")
+        print(f"Type:    {email_type}")
+        print(f"OTP:     {otp}")
+        print("=" * 50 + "\n")
 
         return False, str(e)
