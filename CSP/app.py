@@ -125,8 +125,9 @@ def create_app():
 
 
 # ── Run the Application ──
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     print("\n✅ Smart Career Navigator is running!")
     print("📍 Open: http://127.0.0.1:5000")
     print("👤 Admin Login: admin / admin123\n")
