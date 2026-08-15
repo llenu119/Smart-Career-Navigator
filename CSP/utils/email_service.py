@@ -1,32 +1,55 @@
-
 """
 Email Service
 =============
 Handles sending OTP codes for email verification
-and password resets using Resend.
+and password resets using SMTP.
+
+If SMTP settings are not configured in .env / Render,
+it runs in Developer Sandbox Mode and prints the OTP
+in the logs.
 """
 
 import os
-import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 
 # ============================================================
-# RESEND CONFIGURATION
+# SMTP CONFIGURATION
 # ============================================================
 
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
-
-RESEND_SENDER = os.environ.get(
-    "RESEND_SENDER",
-    "onboarding@resend.dev"
+SMTP_SERVER = os.environ.get(
+    "SMTP_SERVER",
+    "smtp.gmail.com"
 ).strip()
 
-# Configure Resend only when an API key is available
-if RESEND_API_KEY:
-    resend.api_key = RESEND_API_KEY
+SMTP_PORT = int(
+    os.environ.get(
+        "SMTP_PORT",
+        "587"
+    )
+)
 
-print("RESEND API KEY FOUND:", bool(RESEND_API_KEY))
-print("RESEND SENDER:", RESEND_SENDER)
+SMTP_USERNAME = os.environ.get(
+    "SMTP_USERNAME",
+    ""
+).strip()
+
+SMTP_PASSWORD = os.environ.get(
+    "SMTP_PASSWORD",
+    ""
+).strip()
+
+SMTP_SENDER = os.environ.get(
+    "SMTP_SENDER",
+    SMTP_USERNAME
+).strip()
+
+
+print("SMTP USERNAME FOUND:", bool(SMTP_USERNAME))
+print("SMTP PASSWORD FOUND:", bool(SMTP_PASSWORD))
+print("SMTP SENDER:", SMTP_SENDER)
 
 
 # ============================================================
@@ -34,14 +57,6 @@ print("RESEND SENDER:", RESEND_SENDER)
 # ============================================================
 
 def send_otp_email(to_email, otp, username=None):
-    """
-    Send a 6-digit verification OTP.
-
-    Returns:
-        (True, "sent")    -> email sent successfully
-        (True, "sandbox") -> API key is not configured
-        (False, error)    -> email sending failed
-    """
 
     subject = "Verify Your Account - Smart Career Navigator"
 
@@ -75,14 +90,6 @@ The Smart Career Navigator Team
 # ============================================================
 
 def send_password_reset_email(to_email, otp, username=None):
-    """
-    Send a 6-digit password reset OTP.
-
-    Returns:
-        (True, "sent")    -> email sent successfully
-        (True, "sandbox") -> API key is not configured
-        (False, error)    -> email sending failed
-    """
 
     subject = "Reset Your Password - Smart Career Navigator"
 
@@ -117,22 +124,19 @@ The Smart Career Navigator Team
 # INTERNAL EMAIL SENDER
 # ============================================================
 
-def _send_email(to_email, subject, body, otp, email_type):
-    """
-    Send an email using Resend.
-
-    If RESEND_API_KEY is missing:
-        Developer Sandbox Mode is used.
-
-    If Resend fails:
-        The error is printed to the Render logs.
-    """
+def _send_email(
+    to_email,
+    subject,
+    body,
+    otp,
+    email_type
+):
 
     # --------------------------------------------------------
-    # Check Resend API key
+    # Developer Sandbox Mode
     # --------------------------------------------------------
 
-    if not RESEND_API_KEY:
+    if not SMTP_USERNAME or not SMTP_PASSWORD:
 
         print("\n" + "=" * 50)
         print("DEVELOPER SANDBOX EMAIL")
@@ -146,31 +150,56 @@ def _send_email(to_email, subject, body, otp, email_type):
 
 
     # --------------------------------------------------------
-    # Send email through Resend
+    # Send email through SMTP
     # --------------------------------------------------------
 
     try:
 
-        params = {
-            "from": RESEND_SENDER,
-            "to": [to_email],
-            "subject": subject,
-            "html": body.replace("\n", "<br>")
-        }
+        msg = MIMEMultipart()
 
-        response = resend.Emails.send(params)
+        msg["From"] = SMTP_SENDER
+        msg["To"] = to_email
+        msg["Subject"] = subject
+
+        msg.attach(
+            MIMEText(
+                body,
+                "plain"
+            )
+        )
+
+        # Connect to SMTP server
+        with smtplib.SMTP(
+            SMTP_SERVER,
+            SMTP_PORT,
+            timeout=15
+        ) as server:
+
+            # Start secure connection
+            server.starttls()
+
+            # Login
+            server.login(
+                SMTP_USERNAME,
+                SMTP_PASSWORD
+            )
+
+            # Send email
+            server.sendmail(
+                SMTP_SENDER,
+                to_email,
+                msg.as_string()
+            )
 
         print(
             f"SUCCESS: {email_type} email sent to {to_email}"
         )
 
-        print(f"Resend response: {response}")
-
         return True, "sent"
 
 
     # --------------------------------------------------------
-    # Handle Resend errors
+    # Handle SMTP errors
     # --------------------------------------------------------
 
     except Exception as e:
@@ -179,7 +208,16 @@ def _send_email(to_email, subject, body, otp, email_type):
             f"ERROR: Failed to send {email_type} email"
         )
 
-        print(f"Resend error: {e}")
+        print(
+            f"SMTP error: {e}"
+        )
+
+        # Keep sandbox fallback for development
+        print("\n" + "=" * 50)
+        print("DEVELOPER SANDBOX FALLBACK")
+        print(f"To:      {to_email}")
+        print(f"Type:    {email_type}")
+        print(f"OTP:     {otp}")
+        print("=" * 50 + "\n")
 
         return False, str(e)
-
