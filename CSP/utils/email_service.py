@@ -2,54 +2,29 @@
 Email Service
 =============
 Handles sending OTP codes for email verification
-and password resets using SMTP.
-
-If SMTP settings are not configured in .env / Render,
-it runs in Developer Sandbox Mode and prints the OTP
-in the logs.
+and password resets using the Brevo API.
 """
 
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 
 
 # ============================================================
-# SMTP CONFIGURATION
+# BREVO CONFIGURATION
 # ============================================================
 
-SMTP_SERVER = os.environ.get(
-    "SMTP_SERVER",
-    "smtp.gmail.com"
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
+
+BREVO_SENDER = os.environ.get(
+    "BREVO_SENDER",
+    "kethanreddy706@gmail.com"
 ).strip()
 
-SMTP_PORT = int(
-    os.environ.get(
-        "SMTP_PORT",
-        "587"
-    )
-)
-
-SMTP_USERNAME = os.environ.get(
-    "SMTP_USERNAME",
-    ""
-).strip()
-
-SMTP_PASSWORD = os.environ.get(
-    "SMTP_PASSWORD",
-    ""
-).strip()
-
-SMTP_SENDER = os.environ.get(
-    "SMTP_SENDER",
-    SMTP_USERNAME
-).strip()
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 
-print("SMTP USERNAME FOUND:", bool(SMTP_USERNAME))
-print("SMTP PASSWORD FOUND:", bool(SMTP_PASSWORD))
-print("SMTP SENDER:", SMTP_SENDER)
+print("BREVO API KEY FOUND:", bool(BREVO_API_KEY))
+print("BREVO SENDER:", BREVO_SENDER)
 
 
 # ============================================================
@@ -57,24 +32,45 @@ print("SMTP SENDER:", SMTP_SENDER)
 # ============================================================
 
 def send_otp_email(to_email, otp, username=None):
+    """
+    Send a 6-digit verification OTP using Brevo.
+
+    Returns:
+        (True, "sent")  -> email sent successfully
+        (True, "sandbox") -> API key is not configured
+        (False, error) -> email sending failed
+    """
 
     subject = "Verify Your Account - Smart Career Navigator"
 
     body = f"""
-Hi {username or 'User'},
+    <html>
+    <body>
+        <p>Hi {username or 'User'},</p>
 
-Welcome to Smart Career Navigator!
+        <p>Welcome to Smart Career Navigator!</p>
 
-Your 6-digit verification code is: {otp}
+        <p>
+            Your 6-digit verification code is:
+            <strong>{otp}</strong>
+        </p>
 
-This code is valid for 10 minutes.
-Please enter it on the verification page to activate your account.
+        <p>
+            This code is valid for 10 minutes.
+            Please enter it on the verification page to activate your account.
+        </p>
 
-If you did not request this code, you can safely ignore this email.
+        <p>
+            If you did not request this code, you can safely ignore this email.
+        </p>
 
-Best regards,
-The Smart Career Navigator Team
-"""
+        <p>
+            Best regards,<br>
+            The Smart Career Navigator Team
+        </p>
+    </body>
+    </html>
+    """
 
     return _send_email(
         to_email,
@@ -90,26 +86,49 @@ The Smart Career Navigator Team
 # ============================================================
 
 def send_password_reset_email(to_email, otp, username=None):
+    """
+    Send a 6-digit password reset OTP using Brevo.
+
+    Returns:
+        (True, "sent")  -> email sent successfully
+        (True, "sandbox") -> API key is not configured
+        (False, error) -> email sending failed
+    """
 
     subject = "Reset Your Password - Smart Career Navigator"
 
     body = f"""
-Hi {username or 'User'},
+    <html>
+    <body>
+        <p>Hi {username or 'User'},</p>
 
-We received a request to reset your password
-for your Smart Career Navigator account.
+        <p>
+            We received a request to reset your password
+            for your Smart Career Navigator account.
+        </p>
 
-Your 6-digit password reset code is: {otp}
+        <p>
+            Your 6-digit password reset code is:
+            <strong>{otp}</strong>
+        </p>
 
-This code is valid for 10 minutes.
-Please enter this code on the password reset page.
+        <p>
+            This code is valid for 10 minutes.
+            Please enter this code on the password reset page.
+        </p>
 
-If you did not request a password reset,
-you can safely ignore this email.
+        <p>
+            If you did not request a password reset,
+            you can safely ignore this email.
+        </p>
 
-Best regards,
-The Smart Career Navigator Team
-"""
+        <p>
+            Best regards,<br>
+            The Smart Career Navigator Team
+        </p>
+    </body>
+    </html>
+    """
 
     return _send_email(
         to_email,
@@ -121,22 +140,21 @@ The Smart Career Navigator Team
 
 
 # ============================================================
-# INTERNAL EMAIL SENDER
+# INTERNAL BREVO EMAIL SENDER
 # ============================================================
 
-def _send_email(
-    to_email,
-    subject,
-    body,
-    otp,
-    email_type
-):
+def _send_email(to_email, subject, body, otp, email_type):
+    """
+    Internal helper used to send emails through Brevo.
+
+    Brevo uses an HTTPS API, so this does not use Gmail SMTP.
+    """
 
     # --------------------------------------------------------
-    # Developer Sandbox Mode
+    # Check Brevo API key
     # --------------------------------------------------------
 
-    if not SMTP_USERNAME or not SMTP_PASSWORD:
+    if not BREVO_API_KEY:
 
         print("\n" + "=" * 50)
         print("DEVELOPER SANDBOX EMAIL")
@@ -150,74 +168,85 @@ def _send_email(
 
 
     # --------------------------------------------------------
-    # Send email through SMTP
+    # Prepare Brevo API request
+    # --------------------------------------------------------
+
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+
+    payload = {
+        "sender": {
+            "name": "Smart Career Navigator",
+            "email": BREVO_SENDER
+        },
+        "to": [
+            {
+                "email": to_email,
+                "name": "User"
+            }
+        ],
+        "subject": subject,
+        "htmlContent": body
+    }
+
+
+    # --------------------------------------------------------
+    # Send email through Brevo
     # --------------------------------------------------------
 
     try:
 
-        msg = MIMEMultipart()
-
-        msg["From"] = SMTP_SENDER
-        msg["To"] = to_email
-        msg["Subject"] = subject
-
-        msg.attach(
-            MIMEText(
-                body,
-                "plain"
-            )
+        response = requests.post(
+            BREVO_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=15
         )
 
-        # Connect to SMTP server
-        with smtplib.SMTP(
-            SMTP_SERVER,
-            SMTP_PORT,
-            timeout=15
-        ) as server:
+        # Raise an exception for HTTP errors
+        response.raise_for_status()
 
-            # Start secure connection
-            server.starttls()
-
-            # Login
-            server.login(
-                SMTP_USERNAME,
-                SMTP_PASSWORD
-            )
-
-            # Send email
-            server.sendmail(
-                SMTP_SENDER,
-                to_email,
-                msg.as_string()
-            )
+        response_data = response.json()
 
         print(
             f"SUCCESS: {email_type} email sent to {to_email}"
+        )
+
+        print(
+            f"Brevo response: {response_data}"
         )
 
         return True, "sent"
 
 
     # --------------------------------------------------------
-    # Handle SMTP errors
+    # Handle Brevo errors
     # --------------------------------------------------------
 
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
 
         print(
             f"ERROR: Failed to send {email_type} email"
         )
 
         print(
-            f"SMTP error: {e}"
+            f"Brevo error: {e}"
         )
 
-        # Keep sandbox fallback for development
-        print("\n" + "=" * 50)
-        print("DEVELOPER SANDBOX FALLBACK")
-        print(f"To:      {to_email}")
-        print(f"Type:    {email_type}")
-        print(f"OTP:     {otp}")
-        print("=" * 50 + "\n")
+        if hasattr(e, "response") and e.response is not None:
+            print(
+                f"Brevo response body: {e.response.text}"
+            )
+
+        return False, str(e)
+
+    except Exception as e:
+
+        print(
+            f"ERROR: Unexpected email error: {e}"
+        )
 
         return False, str(e)
