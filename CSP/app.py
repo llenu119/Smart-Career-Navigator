@@ -33,16 +33,9 @@ def create_app():
     load_dotenv(dotenv_path=env_path, override=True)
 
     app = Flask(__name__)
-
-
-    # ── Configuration ──
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-    app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max upload size: 16 MB
-    
-@app.route("/smtp-test")
-def smtp_test():
-    try:
+    @app.route("/smtp-test")
+    def smtp_test():
+      try:
         connection = socket.create_connection(
             ("smtp.gmail.com", 587),
             timeout=10
@@ -51,10 +44,18 @@ def smtp_test():
 
         return "SMTP connection successful"
 
-    except Exception as e:
+      except Exception as e:
         return f"SMTP connection failed: {e}", 500
 
 
+
+
+
+    # ── Configuration ──
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+    app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max upload size: 16 MB
+    
 
     # Ensure upload folder exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
