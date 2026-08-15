@@ -4,7 +4,7 @@ Smart Career Navigator - Main Application Entry Point
 This is the main Flask application file that initializes the app,
 registers blueprints (routes), and starts the development server.
 """
-import socket
+
 
 import os
 from dotenv import load_dotenv
@@ -33,24 +33,7 @@ def create_app():
     load_dotenv(dotenv_path=env_path, override=True)
 
     app = Flask(__name__)
-    @app.route("/smtp-test")
-    def smtp_test():
-      try:
-        connection = socket.create_connection(
-            ("smtp.gmail.com", 587),
-            timeout=10
-        )
-        connection.close()
-
-        return "SMTP connection successful"
-
-      except Exception as e:
-        return f"SMTP connection failed: {e}", 500
-
-
-
-
-
+    
     # ── Configuration ──
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
