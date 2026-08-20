@@ -59,7 +59,7 @@ def _extract_json(raw):
     return text
 
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "openai/gpt-oss-120b"
 MAX_TOKENS  = 2048
 
 # Non-CSE fallback recommendations (used when AI is unavailable)
