@@ -297,6 +297,7 @@ def forgot_password():
 def reset_password():
     """Reset password using OTP validation."""
     email = session.get('reset_email')
+
     if not email:
         flash('Please request a password reset first.', 'warning')
         return redirect(url_for('auth.forgot_password'))
@@ -306,58 +307,177 @@ def reset_password():
         new_password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
 
-        # Validations
+        # -------------------------
+        # Password validation
+        # -------------------------
         errors = []
+
         ok, msg = is_strong_password(new_password)
+
         if not ok:
             errors.append(msg)
+
         if new_password != confirm_password:
             errors.append('Passwords do not match.')
 
         if errors:
             for error in errors:
                 flash(error, 'danger')
-            return render_template('reset_password.html', email=email)
 
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user_row = cursor.fetchone()
+            return render_template(
+                'reset_password.html',
+                email=email
+            )
 
-        if not user_row:
+        conn = None
+        cursor = None
+
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # -------------------------
+            # Get user
+            # -------------------------
+            cursor.execute(
+                "SELECT * FROM users WHERE email = %s",
+                (email,)
+            )
+
+            user_row = cursor.fetchone()
+
+            if not user_row:
+                flash('Error validating account.', 'danger')
+                return redirect(url_for('auth.forgot_password'))
+
+            # -------------------------
+            # Get OTP
+            # -------------------------
+            stored_otp = user_row['otp']
+            expiry = user_row['otp_expiry']
+
+            # -------------------------
+            # Validate OTP
+            # -------------------------
+            if not stored_otp or stored_otp != otp_input:
+                flash('Invalid reset code.', 'danger')
+
+                return render_template(
+                    'reset_password.html',
+                    email=email
+                )
+
+            # -------------------------
+            # Validate expiry
+            # -------------------------
+            if expiry:
+ 
+                # PostgreSQL may already return
+                # a Python datetime object.
+                if isinstance(expiry, str):
+                    expiry = datetime.strptime(
+                        expiry,
+                        '%Y-%m-%d %H:%M:%S'
+                    )
+
+                # Compare with current UTC time
+                if expiry < datetime.utcnow():
+                    flash(
+                        'Reset code has expired. Please request a new one.',
+                        'danger'
+                    )
+
+                    return redirect(
+                        url_for('auth.forgot_password')
+                    )
+
+            # -------------------------
+            # Hash new password
+            # -------------------------
+            password_hash = generate_password_hash(new_password)
+
+            # -------------------------
+            # Update password
+            # -------------------------
+            cursor.execute(
+                """
+                UPDATE users
+                SET password_hash = %s,
+                    otp = NULL,
+                    otp_expiry = NULL
+                WHERE email = %s
+                """,
+                (password_hash, email)
+            )
+
+            conn.commit()
+
+            # -------------------------
+            # Close database connection
+            # -------------------------
+            cursor.close()
             conn.close()
-            flash('Error validating account.', 'danger')
-            return redirect(url_for('auth.forgot_password'))
 
-        stored_otp = user_row['otp']
-        expiry_str = user_row['otp_expiry']
-        expiry = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S') if expiry_str else None
+            # -------------------------
+            # Clear reset session
+            # -------------------------
+            session.pop('reset_email', None)
 
-        if not stored_otp or stored_otp != otp_input:
-            conn.close()
-            flash('Invalid reset code.', 'danger')
-            return render_template('reset_password.html', email=email)
+            flash(
+                'Your password has been reset successfully. Please log in.',
+                'success'
+            )
 
-        if expiry and expiry < datetime.utcnow():
-            conn.close()
-            flash('Reset code has expired. Please request a new one.', 'danger')
-            return redirect(url_for('auth.forgot_password'))
+            # Logging should not break password reset
+            try:
+                log_system_event(
+                    'info',
+                    f"Password reset successful for: {email}"
+                )
+            except Exception as log_error:
+                print(f"Warning: Could not log password reset: {log_error}")
 
-        # Update password
-        password_hash = generate_password_hash(new_password)
-        cursor.execute(
-            "UPDATE users SET password_hash = %s, otp = NULL, otp_expiry = NULL WHERE email = %s",
-            (password_hash, email)
-        )
-        conn.commit()
-        conn.close()
+            return redirect(url_for('auth.login'))
 
-        flash('Your password has been reset successfully. Please log in.', 'success')
-        log_system_event('info', f"Password reset successful for: {email}")
-        session.pop('reset_email', None)
-        return redirect(url_for('auth.login'))
+        except Exception as e:
 
-    return render_template('reset_password.html', email=email)
+            # Rollback if something went wrong
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
+            print(f"RESET PASSWORD ERROR: {type(e).__name__}: {e}")
+
+            flash(
+                'An error occurred while resetting your password. Please try again.',
+                'danger'
+            )
+
+            return render_template(
+                'reset_password.html',
+                email=email
+            )
+
+        finally:
+            # Safely close connection if still open
+            if cursor:
+                try:
+                    cursor.close()
+                except Exception:
+                    pass
+
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+    return render_template(
+        'reset_password.html',
+        email=email
+    )
 
 
 # ══════════════════════════════════════════════════════════════
