@@ -6,8 +6,9 @@ Supports PDF and DOCX file formats.
 """
 
 import os
+import io
 import json
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify, send_file
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from utils.db import get_db
@@ -58,10 +59,13 @@ def upload():
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(filepath)
 
+        # ── Optional Job Description to match the resume against ──
+        job_description = request.form.get('job_description', '').strip()
+
         # ── Analyze the resume ──
         try:
             from ml.resume_analyzer import analyze_resume
-            analysis = analyze_resume(filepath)
+            analysis = analyze_resume(filepath, jd_text=job_description or None)
 
             # ── Save results to database ──
             conn = get_db()
@@ -73,8 +77,9 @@ def upload():
             cursor.execute('''
                 INSERT INTO resumes 
                 (user_id, filename, filepath, extracted_skills, education,
-                 experience, projects, certifications, resume_score, analysis_result)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 experience, projects, certifications, resume_score, analysis_result,
+                 jd_text, jd_match_result)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 current_user.id,
                 filename,
@@ -85,7 +90,9 @@ def upload():
                 json.dumps(analysis.get('projects', [])),
                 json.dumps(analysis.get('certifications', [])),
                 analysis.get('resume_score', 0),
-                json.dumps(analysis.get('analysis', {}))
+                json.dumps(analysis.get('analysis', {})),
+                job_description or None,
+                json.dumps(analysis.get('jd_match')) if analysis.get('jd_match') else None
             ))
 
             conn.commit()
@@ -138,6 +145,11 @@ def results():
         resume_data['certifications_list'] = []
         resume_data['skills_list'] = []
 
+    try:
+        resume_data['jd_match'] = json.loads(resume_data.get('jd_match_result') or 'null')
+    except (json.JSONDecodeError, TypeError):
+        resume_data['jd_match'] = None
+
     return render_template('resume_results.html', resume=resume_data)
 
 
@@ -181,5 +193,78 @@ def ai_feedback():
         extracted_skills=skills_list,
         resume_score=int(resume['resume_score'] or 0),
         user_id=current_user.id,
+        jd_text=resume.get('jd_text') or '',
     )
+
+    # Persist the AI feedback so it can also be included in the downloadable report
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE resumes SET ai_feedback_result = %s WHERE id = %s",
+            (json.dumps(result), resume['id'])
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
     return jsonify(result)
+
+
+# ──────────────────────────────────────────────
+# DOWNLOAD - Export the full analysis as a PDF
+# ──────────────────────────────────────────────
+@resume_bp.route('/download')
+@login_required
+def download():
+    """Generate and download the resume analysis report as a PDF file."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM resumes WHERE user_id = %s ORDER BY uploaded_at DESC LIMIT 1",
+        (current_user.id,)
+    )
+    resume = cursor.fetchone()
+    conn.close()
+
+    if not resume:
+        flash('No resume found. Please upload a resume first.', 'warning')
+        return redirect(url_for('resume.upload'))
+
+    resume_data = dict(resume)
+    try:
+        resume_data['analysis'] = json.loads(resume_data.get('analysis_result') or '{}')
+        resume_data['education_list'] = json.loads(resume_data.get('education') or '[]')
+        resume_data['experience_list'] = json.loads(resume_data.get('experience') or '[]')
+        resume_data['projects_list'] = json.loads(resume_data.get('projects') or '[]')
+        resume_data['certifications_list'] = json.loads(resume_data.get('certifications') or '[]')
+        resume_data['skills_list'] = [s.strip() for s in (resume_data.get('extracted_skills') or '').split(',') if s.strip()]
+    except (json.JSONDecodeError, TypeError):
+        resume_data['analysis'] = {}
+        resume_data['education_list'] = []
+        resume_data['experience_list'] = []
+        resume_data['projects_list'] = []
+        resume_data['certifications_list'] = []
+        resume_data['skills_list'] = []
+
+    try:
+        resume_data['jd_match'] = json.loads(resume_data.get('jd_match_result') or 'null')
+    except (json.JSONDecodeError, TypeError):
+        resume_data['jd_match'] = None
+
+    try:
+        resume_data['ai_feedback'] = json.loads(resume_data.get('ai_feedback_result') or 'null')
+    except (json.JSONDecodeError, TypeError):
+        resume_data['ai_feedback'] = None
+
+    from ml.report_generator import generate_resume_report_pdf
+    pdf_bytes = generate_resume_report_pdf(resume_data)
+
+    download_name = f"Resume_Analysis_{current_user.id}.pdf"
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=download_name
+    )
