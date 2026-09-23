@@ -15,9 +15,14 @@ Career Navigator{% endblock %} {% block content %}
           <p class="text-muted mb-0">{{ resume.filename }}</p>
         </div>
       </div>
-      <a href="{{ url_for('resume.upload') }}" class="btn btn-outline-primary">
-        <i class="bi bi-arrow-clockwise me-1"></i>Upload New Resume
-      </a>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('resume.download') }}" class="btn btn-success">
+          <i class="bi bi-file-earmark-pdf me-1"></i>Download Report (PDF)
+        </a>
+        <a href="{{ url_for('resume.upload') }}" class="btn btn-outline-primary">
+          <i class="bi bi-arrow-clockwise me-1"></i>Upload New Resume
+        </a>
+      </div>
     </div>
 
     <div class="row g-4">
@@ -220,6 +225,72 @@ Career Navigator{% endblock %} {% block content %}
     </div>
     {% endif %}
 
+    <!-- ═══════ JOB DESCRIPTION MATCH ═══════ -->
+    {% if resume.jd_match %}
+    <div class="glass-card mt-3">
+      <div class="card-body p-4">
+        <h5 class="fw-600 mb-3">
+          <i class="bi bi-bullseye me-2 text-primary"></i>Job Description Match
+        </h5>
+        <div class="row g-3 align-items-center mb-3">
+          <div class="col-auto">
+            <span
+              class="badge fs-6 {% if resume.jd_match.match_score >= 75 %}bg-success{% elif resume.jd_match.match_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+            >
+              {{ resume.jd_match.match_score }}% &middot; {{ resume.jd_match.match_rating }}
+            </span>
+          </div>
+          {% if resume.jd_match.skill_match_percent is not none %}
+          <div class="col-auto small text-muted">
+            Skill match: {{ resume.jd_match.skill_match_percent }}%
+          </div>
+          {% endif %}
+          <div class="col-auto small text-muted">
+            Keyword match: {{ resume.jd_match.keyword_match_percent }}%
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h6 class="fw-600 small text-success">
+              <i class="bi bi-check-circle me-1"></i>Matched Skills
+            </h6>
+            <div class="d-flex flex-wrap gap-1">
+              {% for skill in resume.jd_match.matched_skills %}
+              <span class="badge bg-success-subtle text-success">{{ skill }}</span>
+              {% else %}
+              <p class="text-muted small mb-0">No overlapping skills found</p>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-600 small text-danger">
+              <i class="bi bi-x-circle me-1"></i>Missing Skills
+            </h6>
+            <div class="d-flex flex-wrap gap-1">
+              {% for skill in resume.jd_match.missing_skills %}
+              <span class="badge bg-danger-subtle text-danger">{{ skill }}</span>
+              {% else %}
+              <p class="text-muted small mb-0">None — great coverage!</p>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {% if resume.jd_match.suggestions %}
+        <div class="mt-3">
+          {% for tip in resume.jd_match.suggestions %}
+          <div class="alert alert-info d-flex align-items-start py-2" role="alert">
+            <i class="bi bi-lightbulb me-2 mt-1"></i>
+            <span class="small">{{ tip }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- ═══════ AI RESUME FEEDBACK (Groq) ═══════ -->
     <div class="glass-card mt-3">
       <div
@@ -280,6 +351,11 @@ Career Navigator{% endblock %} {% block content %}
               <ul id="aiATS" class="small ps-3 mb-0"></ul>
             </div>
           </div>
+          <p
+            id="aiJdFit"
+            class="small mt-3 mb-0 d-none"
+            style="border-left: 3px solid #198754; padding-left: 10px"
+          ></p>
         </div>
         <div
           id="aiFeedbackError"
@@ -335,6 +411,14 @@ Career Navigator{% endblock %} {% block content %}
       fillList("aiStrengths", data.strengths);
       fillList("aiImprovements", data.improvements);
       fillList("aiATS", data.ats_tips);
+
+      const jdFitEl = document.getElementById("aiJdFit");
+      if (data.jd_fit) {
+        jdFitEl.innerHTML = "<strong>Fit for the target JD:</strong> " + data.jd_fit;
+        jdFitEl.classList.remove("d-none");
+      } else {
+        jdFitEl.classList.add("d-none");
+      }
 
       document.getElementById("aiFeedbackOutput").classList.remove("d-none");
     } catch (e) {
