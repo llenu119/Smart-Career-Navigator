@@ -105,17 +105,59 @@ also including include across help ensure new build across
 """.split())
 
 # ── Section header patterns ──
-# These regex patterns help identify sections in the resume text
+# These regex patterns help identify sections in the resume text.
+# NOTE: degree-abbreviation alternatives (b.e / m.e / b.sc / etc.) use a
+# LEADING \b as well as a trailing one -- without it, "m.e" matches the
+# "me" inside ordinary words like "Resume", "some", "time", "framework",
+# which was silently corrupting section detection for any resume whose
+# Projects/Experience text happened to contain such a word.
 SECTION_PATTERNS = {
-    'education': r'(?i)(education|academic|qualification|degree|university|college|school|institute|b\.?tech|m\.?tech|b\.?e\b|m\.?e\b|b\.?sc|m\.?sc|b\.?ca|m\.?ca|bachelor|master|ph\.?d)',
-    'experience': r'(?i)(experience|work\s*history|employment|professional\s*experience|work\s*experience|internship|intern|job|company|organization)',
-    'projects': r'(?i)(project|academic\s*project|personal\s*project|mini\s*project|major\s*project|capstone)',
-    'skills': r'(?i)(skill|technical\s*skill|programming|technology|tool|competenc|proficien|expertise|language)',
-    'certifications': r'(?i)(certification|certificate|certified|credential|license|accreditation|course\s*completed|training)',
-    'contact': r'(?i)(contact|email|phone|mobile|address|linkedin|github|portfolio|website)',
-    'summary': r'(?i)(summary|objective|profile|about\s*me|career\s*objective|professional\s*summary)',
-    'achievements': r'(?i)(achievement|award|honor|accomplishment|recognition|publication)'
+    'education': r'(?i)(education|academic|qualification|\bdegree\b|university|college|school|institute|\bb\.?tech\b|\bm\.?tech\b|\bb\.?e\.?\b|\bm\.?e\.?\b|\bb\.?sc\b|\bm\.?sc\b|\bb\.?ca\b|\bm\.?ca\b|bachelor|master|ph\.?d)',
+    'experience': r'(?i)(experience|work\s*history|employment|professional\s*experience|work\s*experience|internship|\bintern\b|\bjob\b|\bcompany\b|organization)',
+    'projects': r'(?i)(projects?|academic\s*project|personal\s*project|mini\s*project|major\s*project|capstone|portfolio\s*work)',
+    'skills': r'(?i)(\bskills?\b|technical\s*skill|programming|technolog|competenc|proficien|expertise|core\s*competenc)',
+    'certifications': r'(?i)(certification|certificate|certified|credential|\blicense\b|accreditation|course\s*completed|training)',
+    'contact': r'(?i)(^contact$|contact\s*(info|information|details)|^email$|^phone$|^mobile$|^address$|linkedin|\bgithub\b|^portfolio$|^website$)',
+    'summary': r'(?i)(summary|objective|\bprofile\b|about\s*me|career\s*objective|professional\s*summary)',
+    'achievements': r'(?i)(achievement|award|honor|honour|accomplishment|recognition|publication)',
+    # Catch-all: common resume headers we don't extract into a named bucket
+    # but still need to recognise as section BOUNDARIES so their content
+    # doesn't bleed into whatever section came right before them.
+    'other': r'(?i)(^strengths?$|relevant\s*strengths|key\s*strengths|core\s*strengths|soft\s*skills|hobbies|interests|extracurricular|leadership|volunteer|declaration|references|languages\s*known|links?$)',
 }
+
+
+def _is_probable_header(line):
+    """
+    Heuristic check for whether a resume line LOOKS like a section header
+    (e.g. "EDUCATION", "SELECTED PROJECTS") rather than body content that
+    merely happens to mention a section keyword mid-sentence.
+
+    Real headers are short, punctuation-light lines -- not full sentences.
+    """
+    if not line or len(line) > 45:
+        return False
+    # Body text commonly contains these; genuine headers almost never do.
+    if any(ch in line for ch in ('|', '•', '@', '(', ')', '/')):
+        return False
+    if sum(ch.isdigit() for ch in line) > 2:
+        return False
+    words = line.split()
+    if not words or len(words) > 5:
+        return False
+    if line.rstrip().endswith(('.', ',', ';')):
+        return False
+    return True
+
+
+def _match_section_header(line):
+    """Return the section name this line is a header for, or None."""
+    if not _is_probable_header(line):
+        return None
+    for name, pattern in SECTION_PATTERNS.items():
+        if re.search(pattern, line):
+            return name
+    return None
 
 
 # ══════════════════════════════════════════════
@@ -197,42 +239,38 @@ def extract_skills(text):
 def extract_section_content(text, section_name):
     """
     Extract content belonging to a specific section of the resume.
-    
-    Strategy: Find the section header, then collect lines until
-    the next section header or end of text.
+
+    Strategy: scan line by line. A line is only treated as a section
+    BOUNDARY if it looks like an actual header (see _is_probable_header) --
+    not merely because it mentions a section-related word somewhere in a
+    full sentence. This avoids treating body text (e.g. a project title
+    that happens to contain the substring "me", or a subtitle containing
+    "B.Tech") as if it were a new section starting.
     """
-    lines = text.split('\n')
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
     section_lines = []
     in_section = False
-    pattern = SECTION_PATTERNS.get(section_name, '')
-
-    if not pattern:
-        return []
 
     for line in lines:
-        stripped = line.strip()
-        if not stripped:
+        matched_section = _match_section_header(line)
+
+        if matched_section == section_name:
+            if in_section:
+                # Already inside this section -- a line that merely repeats
+                # a section keyword (e.g. "AWS Certified Cloud Practitioner"
+                # inside Certifications) is real content, not a new header.
+                section_lines.append(line)
+            else:
+                in_section = True
             continue
-
-        # Check if this line is a section header
-        is_header = bool(re.search(pattern, stripped)) and len(stripped) < 80
-
-        # Check if this line starts a DIFFERENT section
-        is_other_section = False
-        if not is_header:
-            for other_name, other_pattern in SECTION_PATTERNS.items():
-                if other_name != section_name:
-                    if re.search(other_pattern, stripped) and len(stripped) < 80:
-                        is_other_section = True
-                        break
-
-        if is_header:
-            in_section = True
-            continue  # Skip the header line itself
-        elif is_other_section and in_section:
-            break  # End of our section, another section starts
+        elif matched_section is not None:
+            # A different section's header -- ends ours if we were in it.
+            if in_section:
+                break
+            else:
+                continue
         elif in_section:
-            section_lines.append(stripped)
+            section_lines.append(line)
 
     return section_lines
 
@@ -798,4 +836,3 @@ def analyze_resume(filepath, jd_text=None):
         },
         'jd_match': jd_match
     }
-
