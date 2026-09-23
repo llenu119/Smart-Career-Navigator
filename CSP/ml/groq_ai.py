@@ -415,8 +415,13 @@ Only include real, well-known courses.
     return []
 
 
-def get_ai_resume_feedback(resume_text, extracted_skills, resume_score, user_id=None):
-    """Generate AI-written resume improvement suggestions."""
+def get_ai_resume_feedback(resume_text, extracted_skills, resume_score, user_id=None, jd_text=None):
+    """
+    Generate AI-written resume improvement suggestions.
+
+    If jd_text is provided, the feedback also covers how well the resume
+    fits that specific Job Description (adds a "jd_fit" key to the result).
+    """
     try:
         _limit_check(user_id)
     except ValueError:
@@ -425,6 +430,7 @@ def get_ai_resume_feedback(resume_text, extracted_skills, resume_score, user_id=
             "strengths": [],
             "improvements": [],
             "ats_tips": [],
+            "jd_fit": None,
             "error": "Monthly token limit exceeded.",
         }
     system = (
@@ -434,7 +440,33 @@ def get_ai_resume_feedback(resume_text, extracted_skills, resume_score, user_id=
     )
 
     skills_str = ", ".join(extracted_skills[:20]) if extracted_skills else "none detected"
-    user = f"""
+    jd_clean = (jd_text or "").strip()
+
+    if jd_clean:
+        user = f"""
+Analyse this resume against the target Job Description and return JSON with exactly these keys:
+{{
+  "overall":      "2-sentence summary of the resume quality",
+  "strengths":    ["strength 1", "strength 2", "strength 3"],
+  "improvements": ["tip 1", "tip 2", "tip 3", "tip 4"],
+  "ats_tips":     ["ATS tip 1", "ATS tip 2", "ATS tip 3"],
+  "jd_fit":       "2-3 sentences on how well this resume fits the given Job Description, and the top changes to make it fit better"
+}}
+
+Resume score (rule-based): {resume_score}/100
+Skills detected: {skills_str}
+Resume text (first 2000 chars):
+\"\"\"
+{resume_text[:2000]}
+\"\"\"
+
+Target Job Description (first 1200 chars):
+\"\"\"
+{jd_clean[:1200]}
+\"\"\"
+"""
+    else:
+        user = f"""
 Analyse this resume and return JSON with exactly these keys:
 {{
   "overall":      "2-sentence summary of the resume quality",
@@ -451,9 +483,10 @@ Resume text (first 2000 chars):
 \"\"\"
 """
     try:
-        raw = _chat(system, user, max_tokens=700)
+        raw = _chat(system, user, max_tokens=800 if jd_clean else 700)
         clean = _extract_json(raw)
         data = json.loads(clean)
+        data.setdefault("jd_fit", None)
         data.setdefault("error", None)
         _log_ai_request(user_id, "resume_feedback", 'success')
         return data
@@ -464,6 +497,7 @@ Resume text (first 2000 chars):
             "strengths":    [],
             "improvements": [],
             "ats_tips":     [],
+            "jd_fit":       None,
             "error":        str(exc),
         }
 
