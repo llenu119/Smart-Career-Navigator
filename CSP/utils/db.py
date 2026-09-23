@@ -392,6 +392,29 @@ def init_db():
             except Exception as e:
                 print(f"Migration warning: Could not add column {col_name}: {e}")
 
+    # ── Resume table migration: JD matching + saved AI feedback ──
+    # (Only needed for installs where the `resumes` table already existed
+    # before this update -- fresh installs get the columns via CREATE TABLE
+    # below.)
+    if tables_exist:
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'resumes'"
+        )
+        resume_columns = [row['column_name'] for row in cur.fetchall()]
+
+        resume_new_columns = [
+            ("jd_text", "TEXT"),
+            ("jd_match_result", "TEXT"),
+            ("ai_feedback_result", "TEXT"),
+        ]
+
+        for col_name, col_type in resume_new_columns:
+            if col_name not in resume_columns:
+                try:
+                    cur.execute(f"ALTER TABLE resumes ADD COLUMN {col_name} {col_type}")
+                except Exception as e:
+                    print(f"Migration warning: Could not add column {col_name}: {e}")
+
     if not tables_exist:
         cur.execute('''
                 CREATE TABLE IF NOT EXISTS student_profiles (
@@ -420,6 +443,9 @@ def init_db():
                     certifications TEXT,
                     resume_score DOUBLE PRECISION DEFAULT 0,
                     analysis_result TEXT,
+                    jd_text TEXT,
+                    jd_match_result TEXT,
+                    ai_feedback_result TEXT,
                     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
