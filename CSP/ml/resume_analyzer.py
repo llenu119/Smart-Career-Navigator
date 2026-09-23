@@ -80,6 +80,30 @@ KNOWN_SKILLS = [
     'mlops', 'model deployment'
 ]
 
+# ── Common stopwords ignored when extracting generic keywords from a
+#    Job Description (so matching isn't limited to the KNOWN_SKILLS list) ──
+JD_STOPWORDS = set("""
+a about above after again against all am an and any are aren't as at be
+because been before being below between both but by can't cannot could
+couldn't did didn't do does doesn't doing don't down during each few for
+from further had hadn't has hasn't have haven't having he he'd he'll he's
+her here here's hers herself him himself his how how's i i'd i'll i'm i've
+if in into is isn't it it's its itself let's me more most mustn't my
+myself no nor not of off on once only or other ought our ours ourselves
+out over own same shan't she she'd she'll she's should shouldn't so some
+such than that that's the their theirs them themselves then there there's
+these they they'd they'll they're they've this those through to too under
+until up very was wasn't we we'd we'll we're we've were weren't what
+what's when when's where where's which while who who's whom why why's
+with won't would wouldn't you you'd you'll you're you've your yours
+yourself yourselves will etc using use used strong excellent good ability
+abilities experience years year work working team teams role roles job
+jobs company candidate candidates skill skills required requirement
+requirements responsibility responsibilities preferred plus knowledge
+understanding familiarity looking apply application join must nice have
+also including include across help ensure new build across
+""".split())
+
 # ── Section header patterns ──
 # These regex patterns help identify sections in the resume text
 SECTION_PATTERNS = {
@@ -322,6 +346,111 @@ def extract_contact(text):
 
 
 # ══════════════════════════════════════════════
+# JOB DESCRIPTION (JD) MATCHING
+# ══════════════════════════════════════════════
+
+def extract_keywords(text, top_n=30):
+    """
+    Extract the most frequent meaningful keywords from free text
+    (used to catch JD requirements that aren't in KNOWN_SKILLS, e.g.
+    'leadership', 'agile', 'client communication').
+    """
+    words = re.findall(r"[a-zA-Z][a-zA-Z0-9\+\#\.]{2,}", text.lower())
+    freq = {}
+    for word in words:
+        word = word.strip('.')
+        if len(word) < 3 or word in JD_STOPWORDS:
+            continue
+        freq[word] = freq.get(word, 0) + 1
+
+    ranked = sorted(freq.items(), key=lambda item: (-item[1], item[0]))
+    return [word for word, _ in ranked[:top_n]]
+
+
+def match_resume_to_jd(resume_text, resume_skills, jd_text):
+    """
+    Compare a parsed resume against a pasted Job Description.
+
+    Returns a dict with matched/missing skills, an overall match score
+    (0-100), and targeted suggestions -- or None if no JD was provided.
+    """
+    if not jd_text or not jd_text.strip():
+        return None
+
+    jd_skills = extract_skills(jd_text)
+    resume_skills_lower = {s.lower() for s in resume_skills}
+    jd_skills_lower = {s.lower() for s in jd_skills}
+
+    matched_skills = sorted(s for s in jd_skills if s.lower() in resume_skills_lower)
+    missing_skills = sorted(s for s in jd_skills if s.lower() not in resume_skills_lower)
+    extra_skills = sorted(s for s in resume_skills if s.lower() not in jd_skills_lower)
+
+    skill_match_percent = round((len(matched_skills) / len(jd_skills)) * 100) if jd_skills else None
+
+    # Generic keyword overlap catches JD requirements outside the fixed
+    # skills database (soft skills, methodologies, domain terms).
+    jd_keywords = extract_keywords(jd_text)
+    resume_lower = resume_text.lower()
+    matched_keywords = []
+    for kw in jd_keywords:
+        pattern = r'(?<![a-zA-Z])' + re.escape(kw) + r'(?![a-zA-Z])'
+        if re.search(pattern, resume_lower):
+            matched_keywords.append(kw)
+    keyword_match_percent = round((len(matched_keywords) / len(jd_keywords)) * 100) if jd_keywords else 0
+
+    if jd_skills:
+        # Weight recognised technical skills higher than generic keywords.
+        overall_match = round(skill_match_percent * 0.7 + keyword_match_percent * 0.3)
+    else:
+        overall_match = keyword_match_percent
+
+    if overall_match >= 75:
+        match_rating = 'Strong Match'
+    elif overall_match >= 50:
+        match_rating = 'Moderate Match'
+    else:
+        match_rating = 'Weak Match'
+
+    suggestions = []
+    if missing_skills:
+        suggestions.append(
+            f"Add or highlight these skills the job asks for: {', '.join(missing_skills[:8])}."
+        )
+    if overall_match < 40:
+        suggestions.append(
+            'Your resume matches this job description weakly. Tailor your Skills and Projects '
+            'sections around the JD requirements before applying.'
+        )
+    elif overall_match < 70:
+        suggestions.append(
+            'Decent match. Emphasize the skills that overlap with the JD near the top of your '
+            'resume, and treat the missing ones as learning goals.'
+        )
+    else:
+        suggestions.append(
+            'Strong match! Make sure your most relevant matched skills and projects appear '
+            'early in the resume where recruiters see them first.'
+        )
+    if extra_skills:
+        suggestions.append(
+            f"You list {len(extra_skills)} skill(s) not mentioned in the JD -- keep the most "
+            "relevant ones visible and trim ones unrelated to this role."
+        )
+
+    return {
+        'jd_skills_found': jd_skills,
+        'matched_skills': matched_skills,
+        'missing_skills': missing_skills,
+        'extra_skills': extra_skills,
+        'skill_match_percent': skill_match_percent,
+        'keyword_match_percent': keyword_match_percent,
+        'match_score': overall_match,
+        'match_rating': match_rating,
+        'suggestions': suggestions,
+    }
+
+
+# ══════════════════════════════════════════════
 # RESUME SCORING ENGINE
 # ══════════════════════════════════════════════
 
@@ -552,7 +681,7 @@ def identify_missing_sections(extracted_data):
 # MAIN ANALYSIS FUNCTION
 # ══════════════════════════════════════════════
 
-def analyze_resume(filepath):
+def analyze_resume(filepath, jd_text=None):
     """
     Main entry point for resume analysis.
     
@@ -560,6 +689,8 @@ def analyze_resume(filepath):
     
     Args:
         filepath: Absolute path to the uploaded PDF or DOCX file
+        jd_text: Optional Job Description text. When provided, the resume
+                 is also matched against it (see match_resume_to_jd).
     
     Returns:
         dict with keys:
@@ -572,6 +703,7 @@ def analyze_resume(filepath):
         - resume_score: int score out of 100
         - analysis: dict with breakdown, suggestions, missing_sections, 
                      weak_areas, and overall_rating
+        - jd_match: dict (see match_resume_to_jd) or None if no JD given
     """
     # Step 1: Extract raw text from the file
     text = extract_text(filepath)
@@ -594,7 +726,8 @@ def analyze_resume(filepath):
                 'missing_sections': ['All sections'],
                 'weak_areas': ['Unable to parse resume'],
                 'overall_rating': 'Poor'
-            }
+            },
+            'jd_match': None
         }
 
     # Step 2: Extract individual sections
@@ -622,6 +755,9 @@ def analyze_resume(filepath):
 
     # Step 5: Identify missing and weak sections
     missing_sections = identify_missing_sections(extracted_data)
+
+    # Step 5b: Match against the Job Description, if one was provided
+    jd_match = match_resume_to_jd(text, skills, jd_text)
 
     weak_areas = []
     for section, points in breakdown.items():
@@ -659,5 +795,7 @@ def analyze_resume(filepath):
             'overall_rating': overall_rating,
             'total_skills_found': len(skills),
             'total_sections_filled': 5 - len(missing_sections)
-        }
+        },
+        'jd_match': jd_match
     }
+
