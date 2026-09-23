@@ -34,6 +34,16 @@
                         <p class="text-muted small mt-3 mb-0" id="fileName">Supported: PDF, DOCX (Max 16 MB)</p>
                     </div>
 
+                    <!-- Optional Job Description for JD matching -->
+                    <div class="mb-4">
+                        <label for="job_description" class="form-label fw-600 small">
+                            <i class="bi bi-clipboard-check me-1 text-primary"></i>
+                            Job Description <span class="text-muted fw-400">(optional — paste it to get a match score)</span>
+                        </label>
+                        <textarea class="form-control" id="job_description" name="job_description" rows="6"
+                            placeholder="Paste the job description here to see how well your resume matches it..."></textarea>
+                    </div>
+
                     <!-- What We Analyze -->
                     <div class="row g-3 mb-4">
                         <div class="col-6">
@@ -69,7 +79,7 @@
                         <div class="col-6">
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                <span class="small">Improvement Tips</span>
+                                <span class="small">JD Match & Improvement Tips</span>
                             </div>
                         </div>
                     </div>
