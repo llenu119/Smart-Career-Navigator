@@ -381,29 +381,36 @@ Career Navigator{% endblock %} {% block content %}
 </div>
 {% endblock %} {% block extra_js %}
 <script>
+  function $id(id) {
+    return document.getElementById(id);
+  }
+
   async function loadAIFeedback() {
-    const btn = document.getElementById("btnAIFeedback");
-    document.getElementById("aiFeedbackHint").classList.add("d-none");
-    document.getElementById("aiFeedbackOutput").classList.add("d-none");
-    document.getElementById("aiFeedbackError").classList.add("d-none");
-    document.getElementById("aiFeedbackLoading").classList.remove("d-none");
-    btn.disabled = true;
+    const btn = $id("btnAIFeedback");
+    $id("aiFeedbackHint") && $id("aiFeedbackHint").classList.add("d-none");
+    $id("aiFeedbackOutput") && $id("aiFeedbackOutput").classList.add("d-none");
+    $id("aiFeedbackError") && $id("aiFeedbackError").classList.add("d-none");
+    $id("aiFeedbackLoading") && $id("aiFeedbackLoading").classList.remove("d-none");
+    if (btn) btn.disabled = true;
 
     try {
       const res = await fetch("/resume/ai-feedback");
       const data = await res.json();
-      document.getElementById("aiFeedbackLoading").classList.add("d-none");
+      $id("aiFeedbackLoading") && $id("aiFeedbackLoading").classList.add("d-none");
 
       if (data.error && !data.overall) {
-        document.getElementById("aiFeedbackError").textContent = data.error;
-        document.getElementById("aiFeedbackError").classList.remove("d-none");
+        if ($id("aiFeedbackError")) {
+          $id("aiFeedbackError").textContent = data.error;
+          $id("aiFeedbackError").classList.remove("d-none");
+        }
         return;
       }
 
-      document.getElementById("aiOverall").textContent = data.overall || "";
+      if ($id("aiOverall")) $id("aiOverall").textContent = data.overall || "";
 
       const fillList = (id, items) => {
-        const el = document.getElementById(id);
+        const el = $id(id);
+        if (!el) return;
         el.innerHTML = (items || [])
           .map((i) => `<li class="mb-1">${i}</li>`)
           .join("");
@@ -412,22 +419,26 @@ Career Navigator{% endblock %} {% block content %}
       fillList("aiImprovements", data.improvements);
       fillList("aiATS", data.ats_tips);
 
-      const jdFitEl = document.getElementById("aiJdFit");
-      if (data.jd_fit) {
-        jdFitEl.innerHTML = "<strong>Fit for the target JD:</strong> " + data.jd_fit;
-        jdFitEl.classList.remove("d-none");
-      } else {
-        jdFitEl.classList.add("d-none");
+      const jdFitEl = $id("aiJdFit");
+      if (jdFitEl) {
+        if (data.jd_fit) {
+          jdFitEl.innerHTML = "<strong>Fit for the target JD:</strong> " + data.jd_fit;
+          jdFitEl.classList.remove("d-none");
+        } else {
+          jdFitEl.classList.add("d-none");
+        }
       }
 
-      document.getElementById("aiFeedbackOutput").classList.remove("d-none");
+      $id("aiFeedbackOutput") && $id("aiFeedbackOutput").classList.remove("d-none");
     } catch (e) {
-      document.getElementById("aiFeedbackLoading").classList.add("d-none");
-      document.getElementById("aiFeedbackError").textContent =
-        "Request failed. Check your connection and API key.";
-      document.getElementById("aiFeedbackError").classList.remove("d-none");
+      $id("aiFeedbackLoading") && $id("aiFeedbackLoading").classList.add("d-none");
+      if ($id("aiFeedbackError")) {
+        $id("aiFeedbackError").textContent =
+          "Request failed. Check your connection and API key.";
+        $id("aiFeedbackError").classList.remove("d-none");
+      }
     } finally {
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
     }
   }
 </script>
