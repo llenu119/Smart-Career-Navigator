@@ -54,7 +54,7 @@ class ResumeReportPDF(FPDF):
     def body_text(self, text, size=10, style=''):
         self.set_font('Helvetica', style, size)
         self.set_text_color(*DARK)
-        self.multi_cell(0, 6, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.multi_cell(0, 6, _safe(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     def bullet_list(self, items, empty_message="None detected"):
         self.set_font('Helvetica', '', 10)
@@ -65,16 +65,31 @@ class ResumeReportPDF(FPDF):
             self.set_text_color(*DARK)
             return
         for item in items:
-            clean = str(item).encode('latin-1', 'replace').decode('latin-1')
+            clean = _safe(item)
             self.multi_cell(0, 6, f'- {clean}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(1)
 
 
+_UNICODE_REPLACEMENTS = {
+    '\u2014': '-',   # em dash
+    '\u2013': '-',   # en dash
+    '\u2022': '-',   # bullet
+    '\u2018': "'", '\u2019': "'",   # curly single quotes
+    '\u201c': '"', '\u201d': '"',   # curly double quotes
+    '\u2026': '...',  # ellipsis
+    '\u00a0': ' ',    # non-breaking space
+}
+
+
 def _safe(text):
-    """fpdf2's core fonts are Latin-1 only; drop characters it can't render."""
+    """fpdf2's core fonts are Latin-1 only; normalize common Unicode
+    punctuation to ASCII first, then drop anything else it can't render."""
     if text is None:
         return ''
-    return str(text).encode('latin-1', 'replace').decode('latin-1')
+    text = str(text)
+    for uni, ascii_ch in _UNICODE_REPLACEMENTS.items():
+        text = text.replace(uni, ascii_ch)
+    return text.encode('latin-1', 'replace').decode('latin-1')
 
 
 def generate_resume_report_pdf(resume_data):
