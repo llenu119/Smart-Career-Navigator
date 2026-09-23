@@ -258,7 +258,7 @@ def download():
     except (json.JSONDecodeError, TypeError):
         resume_data['ai_feedback'] = None
 
-    from ml.report_generator import generate_resume_report_pdf
+    from utils.report_generator import generate_resume_report_pdf
     pdf_bytes = generate_resume_report_pdf(resume_data)
 
     download_name = f"Resume_Analysis_{current_user.id}.pdf"
